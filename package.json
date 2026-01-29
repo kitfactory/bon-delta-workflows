@@ -1,6 +1,6 @@
 {
   "name": "bon-agents-md",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Create an AGENTS.md in the current directory with a single bon command.",
   "license": "MIT",
   "author": "Naruhide Kitada",
