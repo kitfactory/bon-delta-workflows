@@ -87,6 +87,13 @@ test('createTemplate references docs and avoids project-specific info', () => {
 test('createTemplate Japanese markers', () => {
   const tpl = bon.createTemplate({ projectName: 'demo', language: 'rust', editor: 'codex', locale: 'ja' });
   assert.ok(tpl.includes('Top 5') && tpl.includes('作業開始'), 'Japanese template should include Japanese sections');
+  assert.ok(tpl.includes('要件対応プロトコル（Delta-First / 必須）'), 'Japanese template should include delta-first protocol');
+  assert.ok(tpl.includes('役割境界（Canonical Docs と Delta）'), 'Japanese template should include role boundary section');
+  assert.ok(tpl.includes('実装アイテム1件は `delta request` 1件の seed'), 'Japanese template should describe plan-item to delta-seed mapping');
+  assert.ok(tpl.includes('delta の記録は `docs/delta/*.md`（Markdown）を正本'), 'Japanese template should keep markdown as canonical for delta records');
+  assert.ok(tpl.includes('設計変更提案の出力順を固定'), 'Japanese template should include fixed design-output order');
+  assert.ok(tpl.includes('`spec.md > architecture.md > OVERVIEW/AGENTS > 設計補助ガイド`'), 'Japanese template should include design-guidance priority');
+  assert.ok(tpl.includes('node scripts/validate_delta_links.js --dir .'), 'Japanese template should mention delta link validator');
 });
 
 test('createTemplate Japanese doc and comment rules', () => {
@@ -103,6 +110,99 @@ test('createTemplate English doc rules include concept/spec guidance', () => {
   assert.ok(tpl.toLowerCase().includes('design rules'), 'Should include design rules section in English template');
   assert.ok(tpl.includes('docs/OVERVIEW.md'), 'Should point to docs/OVERVIEW.md');
   assert.ok(tpl.toLowerCase().includes('minimal examples'), 'English template should include minimal examples');
+  assert.ok(tpl.includes('Requirement Protocol (Delta-First / Required)'), 'English template should include delta-first protocol');
+  assert.ok(tpl.includes('Role Boundary (Canonical Docs vs Delta)'), 'English template should include role boundary section');
+  assert.ok(tpl.includes('If there is no Delta ID, do not start requirement implementation'), 'English template should include Delta ID guardrail');
+  assert.ok(tpl.includes('Treat each implementation item in `docs/plan.md` as a seed for one `delta request`'), 'English template should describe plan-item to delta-seed mapping');
+  assert.ok(tpl.includes('Keep delta records canonical in Markdown (`docs/delta/*.md`)'), 'English template should keep markdown as canonical for delta records');
+  assert.ok(tpl.includes('Fix design-output order'), 'English template should include fixed design-output order');
+  assert.ok(tpl.includes('Conflict priority for design guidance'), 'English template should include design-guidance priority');
+  assert.ok(tpl.includes('node scripts/validate_delta_links.js --dir .'), 'English template should mention delta link validator');
+});
+
+test('createOverviewTemplate includes delta boundary notes', () => {
+  const ja = bon.createOverviewTemplate('ja');
+  assert.ok(ja.includes('delta-first'), 'Japanese overview should mention delta-first');
+  assert.ok(ja.includes('Delta ID が未提示の要件実装は開始せず'), 'Japanese overview should require Delta ID before implementation');
+  assert.ok(ja.includes('実装アイテム1件は delta request 1件の seed'), 'Japanese overview should describe plan-item to delta-seed mapping');
+  assert.ok(ja.includes('delta 記録は Markdown（docs/delta/*.md）を正本'), 'Japanese overview should keep markdown as canonical for delta records');
+  assert.ok(ja.includes('plan.md の archive'), 'Japanese overview should distinguish plan archive from delta archive');
+
+  const en = bon.createOverviewTemplate('en');
+  assert.ok(en.includes('delta-first flow'), 'English overview should mention delta-first');
+  assert.ok(en.includes('If there is no Delta ID, do not start requirement implementation'), 'English overview should require Delta ID before implementation');
+  assert.ok(en.includes('Treat each implementation item in plan.md as a seed for one delta request'), 'English overview should describe plan-item to delta-seed mapping');
+  assert.ok(en.includes('Keep delta records canonical in Markdown (docs/delta/*.md)'), 'English overview should keep markdown as canonical for delta records');
+  assert.ok(en.includes('plan.md archive is for completed plan tasks'), 'English overview should distinguish plan archive from delta archive');
+});
+
+test('validate_delta_links passes for consistent plan-delta links', () => {
+  const dir = tempDir();
+  const docsDir = path.join(dir, 'docs');
+  const deltaDir = path.join(docsDir, 'delta');
+  fs.mkdirSync(deltaDir, { recursive: true });
+
+  fs.writeFileSync(
+    path.join(docsDir, 'plan.md'),
+    [
+      '# plan.md',
+      '',
+      '# current',
+      '- [ ] [SEED-login] create delta request for login change',
+      '',
+      '# future',
+      '- future item',
+      '',
+      '# archive',
+      '- [x] [DR-20260301-login] archived'
+    ].join('\n'),
+    'utf8'
+  );
+
+  fs.writeFileSync(
+    path.join(deltaDir, 'DR-20260301-login.md'),
+    ['# delta-archive', '', '## verify', '- verify result: PASS'].join('\n'),
+    'utf8'
+  );
+
+  const script = path.join(__dirname, '..', 'scripts', 'validate_delta_links.js');
+  const run = spawnSync('node', [script, '--dir', dir], { encoding: 'utf8' });
+  assert.strictEqual(run.status, 0, run.stderr);
+});
+
+test('validate_delta_links fails when archived delta is not PASS', () => {
+  const dir = tempDir();
+  const docsDir = path.join(dir, 'docs');
+  const deltaDir = path.join(docsDir, 'delta');
+  fs.mkdirSync(deltaDir, { recursive: true });
+
+  fs.writeFileSync(
+    path.join(docsDir, 'plan.md'),
+    [
+      '# plan.md',
+      '',
+      '# current',
+      '- [ ] current task',
+      '',
+      '# future',
+      '- future item',
+      '',
+      '# archive',
+      '- [x] [DR-20260302-auth] archived'
+    ].join('\n'),
+    'utf8'
+  );
+
+  fs.writeFileSync(
+    path.join(deltaDir, 'DR-20260302-auth.md'),
+    ['# delta-archive', '', '## verify', '- verify result: FAIL'].join('\n'),
+    'utf8'
+  );
+
+  const script = path.join(__dirname, '..', 'scripts', 'validate_delta_links.js');
+  const run = spawnSync('node', [script, '--dir', dir], { encoding: 'utf8' });
+  assert.notStrictEqual(run.status, 0, 'validator should fail on inconsistent archive status');
+  assert.ok(run.stderr.includes('DR-20260302-auth'));
 });
 
 test('isWsl detects microsoft release', () => {
@@ -122,6 +222,10 @@ test('CLI creates AGENTS.md and blocks overwrite without --force', () => {
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'spec.md')), 'docs/spec.md should be created');
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'architecture.md')), 'docs/architecture.md should be created');
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'plan.md')), 'docs/plan.md should be created');
+  assert.ok(fs.existsSync(path.join(dir, 'docs', 'delta', 'TEMPLATE.md')), 'docs/delta/TEMPLATE.md should be created');
+  assert.ok(fs.existsSync(path.join(dir, 'scripts', 'validate_delta_links.js')), 'scripts/validate_delta_links.js should be created');
+  const deltaTemplate = fs.readFileSync(path.join(dir, 'docs', 'delta', 'TEMPLATE.md'), 'utf8');
+  assert.ok(deltaTemplate.toLowerCase().includes('canonical') || deltaTemplate.includes('正本'), 'delta template should mention markdown canonical policy');
 
   const second = spawnSync('node', [script, '--dir', dir], { encoding: 'utf8' });
   assert.notStrictEqual(second.status, 0, 'Second run without --force should fail');

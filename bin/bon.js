@@ -304,11 +304,13 @@ function createLeanTemplate({ projectName, language, editor, locale }) {
       ? [
           'この AGENTS.md は **運用の最小ルール**を記載します。',
           '詳細（レビューゲートのチェックリスト、Phase Close、spec/plan 分割ルール、DoD、エラー一覧など）は **`docs/OVERVIEW.md`** を正とします。',
+          'ただし、**ユーザー要件の実行手順は delta フロー（request → apply → verify → archive）を最優先**とします。',
           '機密情報は記載しないでください。'
         ].join('\n')
       : [
           'This `AGENTS.md` contains **minimal operating rules**.',
           'For details (review gate checklist, Phase Close, spec/plan split rules, DoD, error/message list, etc.), treat **`docs/OVERVIEW.md`** as canonical.',
+          'However, for user-requirement execution, **delta flow (request → apply → verify → archive) is the highest-priority procedure**.',
           'Do not place secrets in this file.'
         ].join('\n');
 
@@ -316,19 +318,97 @@ function createLeanTemplate({ projectName, language, editor, locale }) {
     locale === 'ja'
       ? [
           '## Top 5（必ず守る）',
-          '1. **入口は `docs/OVERVIEW.md`**（全体像・現在地・リンク集）。作業前後で必ず確認/更新する。',
-          '2. **正本（Canonical）は `docs/`**。迷ったらまず正本を更新する（フェーズ運用は任意・適用条件あり）。',
-          '3. **レビューゲートで必ず停止**：自己レビュー → 完成と判断できたらユーザー確認 → 合意で次へ。',
+          '1. **ユーザー要件は必ず delta 4ステップで処理**：`delta request → delta apply → delta verify → delta archive`。',
+          '2. **矛盾時は delta を優先**：AGENTS.md / OVERVIEW / 既存メモと矛盾したら、当該 Delta ID の定義（In Scope / Out of Scope / AC）を優先する。',
+          '3. **入口は `docs/OVERVIEW.md`**（全体像・現在地・リンク集）。作業前後で必ず確認/更新する。',
           '4. **`docs/plan.md` は current / future / archive で管理**（current はチェックリスト、future は粗い計画、archive は完了）。',
-          '5. **大きい変更は “提案→合意→適用”**（構成変更、ID変更、大量削除、互換影響など）。'
+          '5. **レビューゲートで必ず停止**：自己レビュー → 完成と判断できたらユーザー確認 → 合意で次へ。'
         ].join('\n')
       : [
           '## Top 5 (Must Follow)',
-          '1. **Single entrypoint is `docs/OVERVIEW.md`** (status, scope, links). Check/update it before and after work.',
-          '2. **Canonical is `docs/`**. When in doubt, update canonical first (phases are optional; only when conditions apply).',
-          '3. **Stop at review gates**: self-review → ask user to confirm when “done” → proceed only with agreement.',
+          '1. **Process every user requirement via delta 4 steps**: `delta request → delta apply → delta verify → delta archive`.',
+          '2. **Delta takes precedence on conflicts**: if AGENTS/OVERVIEW/notes conflict, follow the active Delta ID definition (In Scope / Out of Scope / AC).',
+          '3. **Single entrypoint is `docs/OVERVIEW.md`** (status, scope, links). Check/update it before and after work.',
           '4. **`docs/plan.md` uses current / future / archive** (current = checklist, future = rough plan, archive = done).',
-          '5. **Large changes require “propose → agree → apply”** (restructure, ID changes, large deletions, compatibility impact).'
+          '5. **Stop at review gates**: self-review → ask user to confirm when “done” → proceed only with agreement.'
+        ].join('\n');
+
+  const deltaWorkflow =
+    locale === 'ja'
+      ? [
+          '## 要件対応プロトコル（Delta-First / 必須）',
+          '### Step 1: `delta request`（定義）',
+          '- ユーザー要件から **最小差分** を定義する（In Scope / Out of Scope / 受入条件）。',
+          '- この時点で「今回やらないこと」を明文化し、巻き込みを防ぐ。',
+          '',
+          '### Step 2: `delta apply`（適用）',
+          '- request で定義した差分だけを実装する。',
+          '- request にない“ついで修正”は実施しない。',
+          '',
+          '### Step 3: `delta verify`（検証）',
+          '- 受入条件を満たすかを検証する。',
+          '- Out of Scope への変更があれば FAIL とし、後工程へ流さない。',
+          '- `node scripts/validate_delta_links.js --dir .` で plan↔delta↔archive の整合を確認する。',
+          '',
+          '### Step 4: `delta archive`（確定）',
+          '- verify が PASS の差分だけを履歴化してクローズする。',
+          '- archive で新規要件を追加しない。',
+          '',
+          '### 逸脱防止ルール',
+          '- すべての変更は AC に紐づける。紐づかない変更は削除または次の delta に分離する。',
+          '- スコープ変更が必要になったら、現在の delta を止めて request を更新してから再開する。'
+        ].join('\n')
+      : [
+          '## Requirement Protocol (Delta-First / Required)',
+          '### Step 1: `delta request` (Define)',
+          '- Define the **minimal delta** from the user requirement (In Scope / Out of Scope / Acceptance Criteria).',
+          '- Explicitly list what will NOT be changed to prevent scope creep.',
+          '',
+          '### Step 2: `delta apply` (Implement)',
+          '- Implement only what was defined in request.',
+          '- Do not include opportunistic side-fixes that are outside request.',
+          '',
+          '### Step 3: `delta verify` (Validate)',
+          '- Validate against acceptance criteria.',
+          '- If any Out-of-Scope change exists, mark FAIL and stop.',
+          '- Run `node scripts/validate_delta_links.js --dir .` to validate plan↔delta↔archive links.',
+          '',
+          '### Step 4: `delta archive` (Finalize)',
+          '- Archive only verified PASS deltas and close the change.',
+          '- Do not add new requirements in archive.',
+          '',
+          '### Deviation Guardrails',
+          '- Every code/doc change must map to acceptance criteria; otherwise remove or split into the next delta.',
+          '- If scope must change, pause and update request first, then continue.'
+        ].join('\n');
+
+  const roleBoundary =
+    locale === 'ja'
+      ? [
+          '## 役割境界（Canonical Docs と Delta）',
+          '- `concept/spec/architecture` 系スキルは **全体文書の正本整備**を担当する。',
+          '- ユーザー要件への対応は **delta 4ステップ**（request/apply/verify/archive）で実行する。',
+          '- `spec-editor` / `architecture-editor` / `concept-editor` は delta を作成・実行しない。',
+          '- Delta ID が無い要件実装は開始せず、先に `delta request` を作成する。',
+          '- `docs/plan.md` の実装アイテム1件は `delta request` 1件の seed として扱う（原則 1:1）。',
+          '- 実装アイテムが大きい場合は複数 delta へ分割してよい（1:N）。',
+          '- delta の記録は `docs/delta/*.md`（Markdown）を正本とし、JSON/YAML の副管理を要求しない。',
+          '- `delta-archive` が PASS のときのみ、正本へ最小差分で同期する。',
+          '- Active Delta がある間、正本更新は In Scope に限定し、Out of Scope は変更しない。',
+          '- `docs/plan.md` の archive は計画タスクの完了記録であり、`delta archive`（差分確定）とは別物として扱う。'
+        ].join('\n')
+      : [
+          '## Role Boundary (Canonical Docs vs Delta)',
+          '- `concept/spec/architecture` skills are for **canonical document maintenance**.',
+          '- User-requirement execution must run through **delta 4 steps** (request/apply/verify/archive).',
+          '- `spec-editor` / `architecture-editor` / `concept-editor` do not create or execute delta.',
+          '- If there is no Delta ID, do not start requirement implementation; create `delta request` first.',
+          '- Treat each implementation item in `docs/plan.md` as a seed for one `delta request` (default 1:1).',
+          '- If an item is too large, split it into multiple deltas (1:N allowed).',
+          '- Keep delta records canonical in Markdown (`docs/delta/*.md`); do not require JSON/YAML sidecars.',
+          '- Sync canonical docs only after `delta-archive` PASS, with minimal diffs.',
+          '- While an Active Delta exists, limit canonical updates to In Scope; do not change Out of Scope.',
+          '- `docs/plan.md` archive records completed plan tasks; it is not the same as `delta archive` (delta finalization).'
         ].join('\n');
 
   const designDirectives =
@@ -340,7 +420,9 @@ function createLeanTemplate({ projectName, language, editor, locale }) {
           '- **拡張は合成で**：差分は `details/meta` 等の入れ子で表現してI/Fを安定化（ただしゴッドデータ禁止）。',
           '- **`details/meta` のゴミ箱化禁止**：キー集合/構造は spec で定義し、「不明キー何でもOK」を許さない。肥大化したらコアへ昇格。',
           '- **ゴッドAPI/ゴッドクラス禁止**：最小I/F・最小データで責務分割する。',
-          '- **依存方向の逆流禁止**：レイヤー責務と依存方向は architecture に明記し、それに従う。'
+          '- **依存方向の逆流禁止**：レイヤー責務と依存方向は architecture に明記し、それに従う（外→内固定）。',
+          '- **設計変更提案の出力順を固定**：変更分類→価値フロー→最小案→レイヤー配置→境界契約→状態遷移→エラー設計→観測性→テスト→境界チェック→変更前チェック→実装タスク分解。',
+          '- **設計指示の衝突優先**：`spec.md > architecture.md > OVERVIEW/AGENTS > 設計補助ガイド`。'
         ].join('\n')
       : [
           '## Design Rules (Required / Short)',
@@ -349,7 +431,9 @@ function createLeanTemplate({ projectName, language, editor, locale }) {
           '- **Extend via composition**: express diffs with nested `details/meta` while keeping I/F stable (no god data).',
           '- **No `details/meta` dumping**: define keys/shape in spec; forbid “any key OK”; promote shared fields into core over time.',
           '- **No god APIs/classes**: split responsibilities; keep I/F minimal.',
-          '- **No dependency inversion**: document dependency direction in architecture and follow it.'
+          '- **No dependency inversion**: document dependency direction in architecture and keep outer -> inner flow.',
+          '- **Fix design-output order**: classification -> value flow -> minimum change -> layer map -> contracts -> state transitions -> errors -> observability -> tests -> boundary checks -> pre-change checks -> task breakdown.',
+          '- **Conflict priority for design guidance**: `spec.md > architecture.md > OVERVIEW/AGENTS > design-assist-guide`.'
         ].join('\n');
 
   const routine =
@@ -478,6 +562,10 @@ function createLeanTemplate({ projectName, language, editor, locale }) {
     '',
     top5,
     '',
+    deltaWorkflow,
+    '',
+    roleBoundary,
+    '',
     designDirectives,
     '',
     routine,
@@ -505,6 +593,15 @@ function createOverviewTemplate(locale) {
       '# docs/OVERVIEW.md（入口 / 運用の正本）',
       '',
       'この文書は **プロジェクト運用の正本**です。`AGENTS.md` は最小ルールのみで、詳細はここに集約します。',
+      'ユーザー要件の変更実行は **delta-first（request → apply → verify → archive）** で運用します。',
+      '運用文書間で矛盾がある場合、実行中の Delta ID（In Scope / Out of Scope / AC）を優先します。',
+      '文書スキル（concept/spec/architecture）は正本整備に限定し、delta の作成/実行は行いません。',
+      'Delta ID が未提示の要件実装は開始せず、先に delta request を作成します。',
+      'plan.md の実装アイテム1件は delta request 1件の seed として扱います（原則 1:1）。',
+      '実装アイテムが大きい場合は複数 delta に分割して進めます（1:N）。',
+      'delta 記録は Markdown（docs/delta/*.md）を正本とし、JSON/YAML の副管理を要求しません。',
+      'delta-archive が PASS のときのみ、正本へ最小差分で同期します。',
+      'plan.md の archive は計画タスクの完了記録であり、delta archive（差分確定）とは別です。',
       '',
       '---',
       '',
@@ -545,6 +642,15 @@ function createOverviewTemplate(locale) {
     '# docs/OVERVIEW.md (Entry / Canonical Operations)',
     '',
     'This document is the **canonical source for project operations**. Keep `AGENTS.md` minimal and put details here.',
+    'Execute user requirements in **delta-first flow (request → apply → verify → archive)**.',
+    'If documents conflict, prioritize the active Delta ID definition (In Scope / Out of Scope / AC).',
+    'Document skills (concept/spec/architecture) are for canonical maintenance only; they do not create/execute delta.',
+    'If there is no Delta ID, do not start requirement implementation; create delta request first.',
+    'Treat each implementation item in plan.md as a seed for one delta request (default 1:1).',
+    'If an implementation item is too large, split it into multiple deltas (1:N).',
+    'Keep delta records canonical in Markdown (docs/delta/*.md); do not require JSON/YAML sidecars.',
+    'Sync canonical docs only after delta-archive PASS, using minimal diffs.',
+    'plan.md archive is for completed plan tasks and is not the same as delta archive (delta finalization).',
     '',
     '---',
     '',
@@ -626,6 +732,45 @@ function createDocStub(relativePath, locale) {
           '# archive',
           '- [x] 完了項目を記録する'
         ].join('\n');
+      case 'docs/delta/TEMPLATE.md':
+        return [
+          '# delta 記録テンプレート',
+          '',
+          '正本は Markdown（`docs/delta/*.md`）で管理し、JSON/YAML の副管理を要求しない。',
+          '',
+          '## Delta ID',
+          '- DR-YYYYMMDD-<short-name>',
+          '',
+          '## Step 1: delta-request',
+          '- In Scope:',
+          '- Out of Scope:',
+          '- Acceptance Criteria:',
+          '',
+          '## Step 2: delta-apply',
+          '- changed files:',
+          '- applied AC:',
+          '- status: APPLIED / BLOCKED',
+          '',
+          '## Step 3: delta-verify',
+          '- AC result table:',
+          '- scope deviation:',
+          '- overall: PASS / FAIL',
+          '',
+          '## Step 4: delta-archive',
+          '- verify result: PASS',
+          '- archive status: archived',
+          '- unresolved items:',
+          '',
+          '## Canonical Sync',
+          '- synced docs:',
+          '  - concept:',
+          '  - spec:',
+          '  - architecture:',
+          '  - plan:',
+          '',
+          '## Validation Command',
+          '- `node scripts/validate_delta_links.js --dir .`'
+        ].join('\n');
       default:
         return `# ${title}\n`;
     }
@@ -650,6 +795,45 @@ function createDocStub(relativePath, locale) {
         '',
         '# archive',
         '- [x] Completed items'
+      ].join('\n');
+    case 'docs/delta/TEMPLATE.md':
+      return [
+        '# delta record template',
+        '',
+        'Use Markdown (`docs/delta/*.md`) as canonical. Do not require JSON/YAML sidecars.',
+        '',
+        '## Delta ID',
+        '- DR-YYYYMMDD-<short-name>',
+        '',
+        '## Step 1: delta-request',
+        '- In Scope:',
+        '- Out of Scope:',
+        '- Acceptance Criteria:',
+        '',
+        '## Step 2: delta-apply',
+        '- changed files:',
+        '- applied AC:',
+        '- status: APPLIED / BLOCKED',
+        '',
+        '## Step 3: delta-verify',
+        '- AC result table:',
+        '- scope deviation:',
+        '- overall: PASS / FAIL',
+        '',
+        '## Step 4: delta-archive',
+        '- verify result: PASS',
+        '- archive status: archived',
+        '- unresolved items:',
+        '',
+        '## Canonical Sync',
+        '- synced docs:',
+        '  - concept:',
+        '  - spec:',
+        '  - architecture:',
+        '  - plan:',
+        '',
+        '## Validation Command',
+        '- `node scripts/validate_delta_links.js --dir .`'
       ].join('\n');
     default:
       return `# ${title}\n`;
@@ -679,6 +863,7 @@ function ensureDocsSkeleton(targetDir, locale) {
   ensureDocFile(targetDir, 'docs/spec.md', locale);
   ensureDocFile(targetDir, 'docs/architecture.md', locale);
   ensureDocFile(targetDir, 'docs/plan.md', locale);
+  ensureDocFile(targetDir, 'docs/delta/TEMPLATE.md', locale);
 }
 
 function resolveSkillSourceDir() {
@@ -738,6 +923,30 @@ function copySkills(targetDir, editor, force) {
     return { targetSkillDir, ...result };
   } catch (error) {
     fail('E_IO_COPY', `Failed to copy skills: ${error.message}`);
+  }
+
+  return null;
+}
+
+function copyValidationScript(targetDir, force) {
+  const sourcePath = path.join(__dirname, '..', 'scripts', 'validate_delta_links.js');
+  if (!fs.existsSync(sourcePath)) return null;
+
+  const targetPath = path.join(targetDir, 'scripts', 'validate_delta_links.js');
+  try {
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+    if (fs.existsSync(targetPath) && !force) {
+      return { targetPath, copied: false };
+    }
+    fs.copyFileSync(sourcePath, targetPath);
+    try {
+      fs.chmodSync(targetPath, 0o755);
+    } catch (_) {
+      // best effort
+    }
+    return { targetPath, copied: true };
+  } catch (error) {
+    fail('E_IO_COPY', `Failed to copy validation script: ${error.message}`);
   }
 
   return null;
@@ -907,6 +1116,7 @@ function main() {
   ensureOverviewFile(targetDir, locale);
   ensureDocsSkeleton(targetDir, locale);
   const skillCopyResult = copySkills(targetDir, editor, force);
+  const validationScriptResult = copyValidationScript(targetDir, force);
 
   const template = createLeanTemplate({
     projectName: path.basename(targetDir) || 'project',
@@ -928,6 +1138,11 @@ function main() {
   }
   if (skillCopyResult) {
     console.log(`[bon] skills copied to ${skillCopyResult.targetSkillDir} (copied: ${skillCopyResult.copied}, skipped: ${skillCopyResult.skipped})`);
+  }
+  if (validationScriptResult) {
+    console.log(
+      `[bon] validation script ${validationScriptResult.copied ? 'copied' : 'kept'} at ${validationScriptResult.targetPath}`
+    );
   }
 }
 
