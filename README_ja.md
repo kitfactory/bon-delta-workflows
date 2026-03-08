@@ -1,52 +1,72 @@
-# bon-agents-md ⚡️
+# bon-agents-md
 
-`bon-agents-md` は、AI アシスタント向けのガイド（AGENTS.md など）を  
-**ワンコマンドで生成するためのツール**です。
+`bon-agents-md` は、AI アシスタント向けのガイドと Delta-first なドキュメント骨格を生成する CLI です。
 
-- 各エディタ（Codex CLI / Cursor / Claude Code / Copilot）ごとのガイドを自動生成
-- concept / spec / architecture / plan を **Spec ID でひとつながり**に管理
-- プロジェクト固有の情報は `docs/` に分離して、AI の誤読・誤生成を抑制
+次のような用途を想定しています。
 
-「まず AI に渡す設計ガイドをサッと用意したい」「仕様のブレや手戻りを減らしたい」
-ときの**スターターキット**として使えます。
+- AI 作業の立ち上がりを速くしたい
+- concept / spec / architecture / plan を揃えたい
+- スコープの暴走や文書の陳腐化を減らしたい
+- 長時間動く AI 作業にレビューの節目を入れたい
 
 ---
 
-## なにが嬉しいの？（メリット）✨
+## 何が生成されるか
 
-### 1. AGENTS ガイドを数秒で用意できる
-- `bon` コマンドを 1 回実行するだけで、エディタごとに最適化されたガイドを生成  
-  - Codex / Claude Code: `AGENTS.md`  
-  - Cursor: `.cursorrules`  
+`bon` を 1 回実行すると、次を生成します。
+
+- エディタ向けガイド
+  - Codex / Claude Code: `AGENTS.md`
+  - Cursor: `.cursorrules`
   - Copilot: `copilot-instructions.md`
-- 「まずこのファイルを AI に読ませればいい」という状態をすぐ作れます。
+- `docs/` 配下の正本ドキュメント
+  - `docs/OVERVIEW.md`
+  - `docs/concept.md`
+  - `docs/spec.md`
+  - `docs/architecture.md`
+  - `docs/plan.md`
+  - `docs/delta/TEMPLATE.md`
+  - `docs/delta/REVIEW_CHECKLIST.md`
+- プロジェクトローカルの skills
+- 検証スクリプト
+  - `scripts/validate_delta_links.js`
+  - `scripts/check_code_size.js`
 
-### 2. concept/spec/architecture/plan が一貫した「型」になる
-- `docs/OVERVIEW.md` を生成し（無ければ作成）、運用の入口とリンク集を用意
-- `docs/concept.md` / `docs/spec.md` / `docs/architecture.md` / `docs/plan.md` は無ければ最小テンプレを作成し、プロジェクト固有内容はあなたが管理
-- すべて **Spec ID** で連携されるので、
-  - 機能 → 仕様 → 実装レイヤー → 開発計画  
-  がトレースしやすくなります。
-- plan は current / future / archive で管理します。
-- 人間どうしの合意ポイントも明示されるため、レビューや相談がしやすくなります。
+重要なのは、ガイド本体を薄く保ち、プロジェクト固有の正本を `docs/` に集めることです。
 
-### 3. AI に渡しても「暴走しにくい」設計ノウハウをビルトイン
-- Spec は Given / When / Then 形式で、見出しに Spec ID を併記  
-  → 「どの条件でどう動くか」を AI にも人にも誤解させにくい
-- Architecture はレイヤー責務と主要 I/F を明示し、  
-  **ゴッド API / ゴッドデータ** を避ける指針を含めます。
-- エラーは Error ID（例: `[bon][E_EDITOR_UNSUPPORTED] ...`）付きで固定し、  
-  ログ・メッセージの表現が AI に壊されにくくなります。
+---
 
-### 4. サンプルが短くハッキリしていて、期待値を合わせやすい
-- 成功パターン / 失敗パターンを 1 行ずつ用意し、Error ID も付けてあります。
-- 「こういう入力のときに、こういうログ・エラーが出る」が一目で分かるため、  
-  AI にとっても人にとっても**挙動のイメージが揃えやすい**構成です。
+## 哲学
 
-### 5. .env の扱いも安全寄りのデフォルト
-- `.env.sample` は自動生成しません。
-- 必要な環境変数と利用箇所だけを AGENTS ガイド側で指示するスタイルにすることで、  
-  「とりあえず秘密を書いちゃった」事故を減らします。
+`bon-agents-md` の根本思想は単純です。
+
+**AI の作業は、小さく閉じた変更と、正本に結びついたレビュー可能な記録がある時に最も安定する。**
+
+そのため、次の原則で構成しています。
+
+1. Delta-first
+   - すべての要件は
+     `delta request -> delta apply -> delta verify -> delta archive`
+     で処理する
+2. Canonical docs first
+   - `docs/OVERVIEW.md` を運用入口にする
+   - `concept / spec / architecture / plan` を正本にする
+3. Minimal diffs
+   - delta は必要最小限の差分だけを扱う
+   - ついでリファクタや将来拡張は混ぜない
+4. 節目レビュー
+   - 大機能が終わったら `review delta` を回す
+   - 1つの plan item が複数 delta に分かれたら早めに review する
+5. 読める状態を保つ
+   - `plan.md` は薄く保つ
+   - archive 詳細は monthly archive へ逃がす
+   - 長大コードはレビューし、必要なら分割する
+
+これは単なる prompt テンプレートではなく、AI 支援開発の運用モデルです。
+
+参照:
+
+- [`docs/philosophy.py`](docs/philosophy.py)
 
 ---
 
@@ -56,171 +76,304 @@
 npm install -g bon-agents-md
 ```
 
-- 要件: Node.js 16+
+要件:
+
+- Node.js 16+
 
 ---
 
-## 使い方
+## 基本的な使い方
 
 ```bash
-bon                     # ロケール自動判定でガイド + docs/OVERVIEW.md（無ければ作成）を生成
-bon --dir path/to       # 出力先ディレクトリを指定（無ければ作成）
-bon --force             # 既存ガイドファイルを上書き
-bon --lang ts           # python|js|ts|rust から言語ガイダンスを選択（既定: python）
-bon --editor cursor     # codex|cursor|claudecode|copilot からエディタを選択（既定: codex）
-bon --help              # ヘルプ表示
-bon --version           # バージョン表示
+bon
+bon --dir path/to/project
+bon --force
+bon --lang ts
+bon --editor cursor
+bon --help
+bon --version
 ```
+
+オプション:
+
+- `--dir`: 出力先ディレクトリ
+- `--force`: 既存ガイドを上書き
+- `--lang`: `python | js | ts | rust`
+- `--editor`: `codex | cursor | claudecode | copilot`
 
 ---
 
-## 最初の10分（推奨導線）
+## どう使うか
 
-1. ガイドとドキュメントを生成:
+### 1. ガイドと docs を生成する
 
 ```bash
 bon --editor codex --lang python
 ```
 
-2. `AGENTS.md`（またはエディタ向けガイド）と `docs/OVERVIEW.md` を開く。  
-3. `docs/plan.md` の current に、小さな実装アイテムを1件書く。  
-4. `docs/delta/TEMPLATE.md` から delta 記録を1件作成（Delta ID / In Scope / Out of Scope / AC）。  
-5. AC に紐づく変更だけを実装する。  
-6. 検証を実行:
+### 2. 入口を開く
+
+まず読むのは次です。
+
+- `AGENTS.md` またはエディタ向けガイド
+- `docs/OVERVIEW.md`
+
+`OVERVIEW.md` には次がまとまっています。
+
+- 現在スコープ
+- 正本リンク
+- レビュー運用
+- plan slim のルール
+- delta の運用ルール
+
+### 3. 小さな plan item を 1 件書く
+
+起点は `docs/plan.md` です。
+
+plan item は小さく保ってください。  
+通常は 1 item が 1 delta seed になります。
+
+### 4. delta を作る
+
+`docs/delta/TEMPLATE.md` をコピーして次のようなファイルを作ります。
+
+```text
+docs/delta/DR-YYYYMMDD-short-name.md
+```
+
+書く項目:
+
+- `Delta Type`
+- purpose
+- In Scope
+- Out of Scope
+- Acceptance Criteria
+- review gate の要否
+
+### 5. delta の範囲だけ実装する
+
+AC に紐づく変更だけを行います。
+
+混ぜないもの:
+
+- 無関係なリファクタ
+- 広範囲の設計刷新
+- 将来拡張
+
+### 6. verify する
+
+実行:
+
+```bash
+node scripts/validate_delta_links.js --dir .
+node scripts/check_code_size.js --dir .
+```
+
+必要なテストも併せて実行します。
+
+### 7. archive する
+
+verify が PASS なら:
+
+- delta を archive する
+- 必要なら plan 側の完了記録を移す
+- canonical docs を最小差分で同期する
+
+---
+
+## Delta Type
+
+生成される体系では、次の delta type を使います。
+
+- `FEATURE`
+- `REPAIR`
+- `DESIGN`
+- `REVIEW`
+- `DOCS-SYNC`
+- `OPS`
+
+### REVIEW delta
+
+長時間運用では `REVIEW` が重要です。
+
+使う場面:
+
+- 大機能が一段落した
+- 1つの plan item が 3 delta 以上に広がった
+- review なしで non-review delta が 5 件続いた
+- architecture / docs / data hygiene を見直したい
+- 今すぐ設計レビューを入れたい
+
+手動トリガー例:
+
+- `review deltaを回して`
+- `設計レビューして`
+
+`REVIEW` delta では次を使います。
+
+- `docs/delta/REVIEW_CHECKLIST.md`
+
+点検観点:
+
+- layer integrity
+- docs sync
+- data size / record hygiene
+- code split health
+- verify coverage
+
+問題が見つかっても、review delta 自体に大修正は混ぜません。  
+必要な follow-up delta seed を残します。
+
+---
+
+## Plan Slim
+
+`docs/plan.md` は意図的に薄く保ちます。
+
+置くもの:
+
+- `current`
+- `review timing`
+- `future`
+- `archive`
+- `archive index`
+
+履歴詳細は monthly archive に分けます。例:
+
+- `docs/plan_archive_2026_03.md`
+
+手動トリガー例:
+
+- `planをシュリンクして`
+- `archiveを整理して`
+
+Codex 側が自発的に slim 化してよい条件:
+
+- archive summary が 5 項目を超えた
+- `plan.md` が 120 行を超えた
+- archive が current + future より明らかに長い
+- 月が変わって前月 archive をまとめやすい
+
+---
+
+## 検証
+
+### delta 整合チェック
 
 ```bash
 node scripts/validate_delta_links.js --dir .
 ```
 
-7. PASS なら delta を archive し、正本ドキュメントへ最小差分で同期する。  
+見るもの:
+
+- `docs/plan.md`
+- `docs/delta/DR-*.md`
+- archive の PASS 整合
+
+### コードサイズチェック
+
+```bash
+node scripts/check_code_size.js --dir .
+```
+
+既定値:
+
+- 500 行超: レビュー対象
+- 800 行超: 分割対象
+- 1000 行超: 例外扱いのみ
+
+これはソースコード拡張子に対して適用され、Markdown 文書には適用されません。
 
 ---
 
-## 1要件を完了させる最小ハッピーパス
-例: 「APIクライアントにタイムアウトを追加する」
+## 実務上の回し方
 
-1. `delta request`:
-   - `docs/delta/DR-YYYYMMDD-timeout.md` を作成
-   - In Scope（timeout追加）/ Out of Scope（retry再設計）/ 測定可能な AC を定義
-2. `delta apply`:
-   - timeout処理を実装
-   - 必要な場合のみ、関連する正本（`spec/architecture/plan`）を最小差分で更新
-3. `delta verify`:
-   - テストと `node scripts/validate_delta_links.js --dir .` を実行
-   - ACとの対応が明示され、すべて PASS であることを確認
-4. `delta archive`:
-   - delta 記録に verify result PASS を記録
-   - plan の current から archive へ移す（plan完了記録）  
-     ※ plan archive と delta archive は別の記録
+現実的には、次のサイクルで回すのが自然です。
+
+1. plan item を 1 件追加
+2. delta を 1 件作る
+3. 最小差分で実装する
+4. テストと validator で verify
+5. archive する
+6. 節目で `REVIEW` delta を回す
+7. noisy になったら plan を slim 化する
+
+これが意図している標準運用です。
 
 ---
 
-## 生成されるファイル構成
+## 生成される構成
 
-### エディタ向けガイド
+### ガイド
 
 - Codex / Claude Code: `AGENTS.md`
 - Cursor: `.cursorrules`
 - Copilot: `copilot-instructions.md`
 
-### プロジェクト固有ドキュメント（`docs/` 配下）
+### canonical docs
 
-- `docs/OVERVIEW.md`（無ければ作成）
-  - 入口（現在地・スコープ・重要リンク・運用ルール）
-- それ以外（プロジェクト固有の正本）はあなたが用意:
-  - `docs/concept.md` / `docs/spec.md` / `docs/architecture.md` / `docs/plan.md`
-- Delta 運用の補助ファイルも無ければ作成:
-  - `docs/delta/TEMPLATE.md`（Markdown 正本の記録テンプレート）
-  - `scripts/validate_delta_links.js`（plan↔delta↔archive の整合チェック）
+- `docs/OVERVIEW.md`
+- `docs/concept.md`
+- `docs/spec.md`
+- `docs/architecture.md`
+- `docs/plan.md`
+- `docs/delta/TEMPLATE.md`
+- `docs/delta/REVIEW_CHECKLIST.md`
 
-### プロジェクト内スキル配置
-bon はスキルを**プロジェクト内**にコピーします（グローバルには入れません）:
+### 補助スクリプト
+
+- `scripts/validate_delta_links.js`
+- `scripts/check_code_size.js`
+
+### プロジェクトローカル skills
+
 - codex / claudecode: `./.codex/skills`
 - cursor: `./.cursor/skills`
 - copilot: `./.github/copilot/skills`
 
----
-
-## 要件対応フロー（Delta-first）
-
-- ユーザー要件は次の 4 ステップで処理します:
-  - `delta request` -> `delta apply` -> `delta verify` -> `delta archive`
-- 指示が衝突した場合は、アクティブな Delta 定義（In Scope / Out of Scope / AC）を優先します。
-- `docs/plan.md` の実装アイテム 1 件を `delta request` 1 件の seed として扱います（原則 1:1、必要なら 1:N 分割）。
-- delta 記録は Markdown（`docs/delta/*.md`）を正本とし、JSON/YAML の副管理は要求しません。
-- `delta-archive` が PASS のものだけを、正本ドキュメント/実装へ最小差分で同期します。
-
-整合チェック:
-
-```bash
-node scripts/validate_delta_links.js --dir .
-```
+skills はプロジェクト内にコピーされます。  
+`bon` によってグローバルインストールされるわけではありません。
 
 ---
 
-## `validate_delta_links` が失敗したとき
-1. エラーに出た Delta ID と plan セクションの不整合を確認する。  
-2. 先にリンク不整合を修正する:
-   - delta ファイル不足: `docs/delta/DR-*.md` を作成/改名
-   - PASSなしで archive: verify を完了するか、archive から戻す
-   - plan は archive 済みだが delta が未確定: 先に delta 状態を確定
-3. 再実行:
+## ロケール
 
-```bash
-node scripts/validate_delta_links.js --dir .
-```
+ロケール判定元:
 
-4. PASS になるまで繰り返し、その後 `delta archive` に進む。  
+- `LANG`
+- `LC_ALL`
+- OS locale
 
----
+WSL では Windows 側を優先します。
 
-## Done条件（`delta archive` 前）
-- 1つの実装アイテムが 1つの delta に対応している（または分割方針が明示されている）
-- delta 記録に In Scope / Out of Scope / Acceptance Criteria がある
-- すべてのコード/文書変更が AC に紐づいている
-- 変更に必要なテストが PASS
-- `node scripts/validate_delta_links.js --dir .` が PASS
-- 正本ドキュメントは delta 範囲の最小差分でのみ更新
-- 無関係なリファクタや将来拡張を混在させていない
-
----
-
-## 設計品質ガードレール
-
-- `architecture-editor` は 12 項目固定の設計補助ガイドで、設計の抜け漏れを抑えます。
-- 依存方向は外→内（Adapter/Infra -> UseCase -> Domain）で固定します。
-- 設計指示が衝突した場合の優先順位:
-  - `spec.md > architecture.md > OVERVIEW/AGENTS > design-assist-guide`
-- 過剰設計と責務混在を避ける方針を明示しています。
-
----
-
-## Philosophy 参照（このリポジトリ）
-
-- [`docs/philosophy.py`](docs/philosophy.py) に Delta-first の思想を日英でまとめています。
-- 言語指定で出力できます:
-  - `python3 docs/philosophy.py --lang ja`
-  - `python3 docs/philosophy.py --lang en`
-  - `python3 docs/philosophy.py --lang both`
-
----
-
-## ロケールと記述方針
-
-- `LANG` / `LC_ALL` / OS 設定からロケールを判定（WSL は Windows 側を優先）
-- 日本語ロケールの場合:
-  - ドキュメントは日本語
-  - コードコメントは日英併記推奨  
-  → チーム内での読みやすさと、AI にとっての理解しやすさの両立を狙います。
+日本語ロケールでは、日本語寄りの docs を生成します。
 
 ---
 
 ## 開発
 
-- テスト:
+テスト:
 
 ```bash
 npm test
 ```
 
-PR やフィードバックも歓迎です。
+validator:
+
+```bash
+node scripts/validate_delta_links.js --dir .
+node scripts/check_code_size.js --dir .
+```
+
+---
+
+## この形が機能する理由
+
+このプロジェクトは、意図的に次を優先しています。
+
+- clever さより明確さ
+- 完全放任の AI よりレビュー可能な節目
+- 散らばったメモより正本
+- prompt の増殖より運用の一貫性
+
+AI を長く動かしても逸脱しにくくしたいなら、この形に意味があります。

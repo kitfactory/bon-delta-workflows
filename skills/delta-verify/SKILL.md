@@ -20,12 +20,18 @@ description: 「delta verify」「差分の検証をして」「request通りか
 - Out of Scope の変更は失敗として報告する。
 - 根拠のない推測で合格にしない。
 - 判定不能（証跡不足）は PASS にせず FAIL とする。
+- `review gate required: Yes` の delta では、AC 判定に加えてレビュー観点を別枠で評価する。
+- `Delta Type = REVIEW` の場合は `docs/delta/REVIEW_CHECKLIST.md` を使って点検する。
 
 ## 検証フロー
-1. AC ごとに証跡を確認する。
-2. In Scope / Out of Scope の逸脱を確認する。
-3. 変更前後の整合性と回帰リスクを確認する。
-4. PASS/FAIL を決定し、FAIL は最小修正指示を返す。
+1. 標準 verify プロファイルを確定する（static check / targeted unit / targeted integration or E2E / delta validator）。
+2. AC ごとに証跡を確認する。
+3. In Scope / Out of Scope の逸脱を確認する。
+4. 変更前後の整合性と回帰リスクを確認する。
+5. review gate が必要な場合は、レイヤー構造、文書同期、データ肥大、コード分割健全性を確認する。
+6. コード分割健全性では、通常のソースコードについて 500 行超はレビュー済みか、800 行超は分割済みか、1000 行超は例外として妥当かを確認する。
+7. REVIEW delta で問題があれば、必要な follow-up delta seeds を明示する。
+8. PASS/FAIL を決定し、FAIL は最小修正指示を返す。
 
 ## 出力テンプレート（固定）
 ```markdown
@@ -33,6 +39,12 @@ description: 「delta verify」「差分の検証をして」「request通りか
 
 ## Delta ID
 - （requestと同一）
+
+## Verify Profile
+- static check:
+- targeted unit:
+- targeted integration / E2E:
+- delta validator:
 
 ## 検証結果（AC単位）
 | AC | 結果(PASS/FAIL) | 根拠 |
@@ -47,6 +59,19 @@ description: 「delta verify」「差分の検証をして」「request通りか
 ## 不整合/回帰リスク
 - R-01:
 
+## Review Gate
+- required: Yes/No
+- checklist: `docs/delta/REVIEW_CHECKLIST.md`
+- layer integrity: PASS/FAIL/NOT CHECKED
+- docs sync: PASS/FAIL/NOT CHECKED
+- data size: PASS/FAIL/NOT CHECKED
+- code split health: PASS/FAIL/NOT CHECKED
+- file-size threshold: PASS/FAIL/NOT CHECKED
+
+## Review Delta Outcome
+- pass: Yes/No
+- follow-up delta seeds:
+
 ## 判定
 - Overall: PASS / FAIL
 
@@ -55,8 +80,12 @@ description: 「delta verify」「差分の検証をして」「request通りか
 ```
 
 ## 品質ゲート（出力前チェック）
+- 標準 verify プロファイルの実施有無が書かれている。
 - 全 AC が判定されている。
 - 判定ごとに根拠がある。
 - 逸脱の有無が明示されている。
+- review gate が必要な delta では、レビュー観点の結果が明示されている。
+- 500 / 800 / 1000 行の閾値判定が必要な場合は根拠つきで書かれている。
+- REVIEW delta で問題が見つかった場合は follow-up delta seeds が書かれている。
 - FAIL の場合、再applyに必要な最小指示だけを書く。
 - 1件でも FAIL があれば Overall は必ず FAIL である。

@@ -5,6 +5,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const bon = require('../bin/bon.js');
+const codeSize = require('../scripts/check_code_size.js');
 
 const tempDirs = [];
 
@@ -94,6 +95,8 @@ test('createTemplate Japanese markers', () => {
   assert.ok(tpl.includes('設計変更提案の出力順を固定'), 'Japanese template should include fixed design-output order');
   assert.ok(tpl.includes('`spec.md > architecture.md > OVERVIEW/AGENTS > 設計補助ガイド`'), 'Japanese template should include design-guidance priority');
   assert.ok(tpl.includes('node scripts/validate_delta_links.js --dir .'), 'Japanese template should mention delta link validator');
+  assert.ok(tpl.includes('node scripts/check_code_size.js --dir .'), 'Japanese template should mention code-size checker');
+  assert.ok(tpl.includes('REVIEW_CHECKLIST.md'), 'Japanese template should mention review checklist');
 });
 
 test('createTemplate Japanese doc and comment rules', () => {
@@ -118,6 +121,8 @@ test('createTemplate English doc rules include concept/spec guidance', () => {
   assert.ok(tpl.includes('Fix design-output order'), 'English template should include fixed design-output order');
   assert.ok(tpl.includes('Conflict priority for design guidance'), 'English template should include design-guidance priority');
   assert.ok(tpl.includes('node scripts/validate_delta_links.js --dir .'), 'English template should mention delta link validator');
+  assert.ok(tpl.includes('node scripts/check_code_size.js --dir .'), 'English template should mention code-size checker');
+  assert.ok(tpl.includes('REVIEW_CHECKLIST.md'), 'English template should mention review checklist');
 });
 
 test('createOverviewTemplate includes delta boundary notes', () => {
@@ -127,6 +132,12 @@ test('createOverviewTemplate includes delta boundary notes', () => {
   assert.ok(ja.includes('実装アイテム1件は delta request 1件の seed'), 'Japanese overview should describe plan-item to delta-seed mapping');
   assert.ok(ja.includes('delta 記録は Markdown（docs/delta/*.md）を正本'), 'Japanese overview should keep markdown as canonical for delta records');
   assert.ok(ja.includes('plan.md の archive'), 'Japanese overview should distinguish plan archive from delta archive');
+  assert.ok(ja.includes('500 行超'), 'Japanese overview should mention file-size thresholds');
+  assert.ok(ja.includes('REVIEW_CHECKLIST.md'), 'Japanese overview should mention review checklist');
+  assert.ok(ja.includes('archive summary'), 'Japanese overview should mention slim plan structure');
+  assert.ok(ja.includes('3 delta'), 'Japanese overview should mention automatic review trigger by delta count');
+  assert.ok(ja.includes('120行'), 'Japanese overview should mention plan shrink threshold');
+  assert.ok(ja.includes('review timing'), 'Japanese overview should mention review timing in plan');
 
   const en = bon.createOverviewTemplate('en');
   assert.ok(en.includes('delta-first flow'), 'English overview should mention delta-first');
@@ -134,6 +145,12 @@ test('createOverviewTemplate includes delta boundary notes', () => {
   assert.ok(en.includes('Treat each implementation item in plan.md as a seed for one delta request'), 'English overview should describe plan-item to delta-seed mapping');
   assert.ok(en.includes('Keep delta records canonical in Markdown (docs/delta/*.md)'), 'English overview should keep markdown as canonical for delta records');
   assert.ok(en.includes('plan.md archive is for completed plan tasks'), 'English overview should distinguish plan archive from delta archive');
+  assert.ok(en.includes('above 500 lines'), 'English overview should mention file-size thresholds');
+  assert.ok(en.includes('REVIEW_CHECKLIST.md'), 'English overview should mention review checklist');
+  assert.ok(en.includes('archive summary / archive index'), 'English overview should mention slim plan structure');
+  assert.ok(en.includes('3+ deltas'), 'English overview should mention automatic review trigger by delta count');
+  assert.ok(en.includes('120 lines'), 'English overview should mention plan shrink threshold');
+  assert.ok(en.includes('review timing'), 'English overview should mention review timing in plan');
 });
 
 test('validate_delta_links passes for consistent plan-delta links', () => {
@@ -205,6 +222,49 @@ test('validate_delta_links fails when archived delta is not PASS', () => {
   assert.ok(run.stderr.includes('DR-20260302-auth'));
 });
 
+test('check_code_size parseArgs defaults', () => {
+  const parsed = codeSize.parseArgs([]);
+  assert.ok(parsed.dir);
+  assert.strictEqual(parsed.reviewLines, 500);
+  assert.strictEqual(parsed.splitLines, 800);
+  assert.strictEqual(parsed.exceptionLines, 1000);
+});
+
+test('check_code_size warns on review threshold without failing', () => {
+  const dir = tempDir();
+  const srcDir = path.join(dir, 'src');
+  fs.mkdirSync(srcDir, { recursive: true });
+  fs.writeFileSync(path.join(srcDir, 'review.js'), 'const x = 1;\n'.repeat(501), 'utf8');
+
+  const script = path.join(__dirname, '..', 'scripts', 'check_code_size.js');
+  const run = spawnSync('node', [script, '--dir', dir], { encoding: 'utf8' });
+  assert.strictEqual(run.status, 0, run.stderr);
+  assert.ok(run.stderr.includes('review.js'));
+});
+
+test('check_code_size fails on split threshold', () => {
+  const dir = tempDir();
+  const srcDir = path.join(dir, 'src');
+  fs.mkdirSync(srcDir, { recursive: true });
+  fs.writeFileSync(path.join(srcDir, 'split.js'), 'const y = 1;\n'.repeat(801), 'utf8');
+
+  const script = path.join(__dirname, '..', 'scripts', 'check_code_size.js');
+  const run = spawnSync('node', [script, '--dir', dir], { encoding: 'utf8' });
+  assert.notStrictEqual(run.status, 0, 'checker should fail on files above split threshold');
+  assert.ok(run.stderr.includes('split.js'));
+});
+
+test('check_code_size ignores excluded directories', () => {
+  const dir = tempDir();
+  fs.mkdirSync(path.join(dir, 'node_modules'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'node_modules', 'ignored.js'), 'const z = 1;\n'.repeat(1200), 'utf8');
+
+  const script = path.join(__dirname, '..', 'scripts', 'check_code_size.js');
+  const run = spawnSync('node', [script, '--dir', dir], { encoding: 'utf8' });
+  assert.strictEqual(run.status, 0, run.stderr);
+  assert.ok(!run.stderr.includes('ignored.js'));
+});
+
 test('isWsl detects microsoft release', () => {
   const result = bon.isWsl('linux', '5.15.90-microsoft-standard-WSL2', {});
   assert.strictEqual(result, true);
@@ -223,9 +283,16 @@ test('CLI creates AGENTS.md and blocks overwrite without --force', () => {
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'architecture.md')), 'docs/architecture.md should be created');
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'plan.md')), 'docs/plan.md should be created');
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'delta', 'TEMPLATE.md')), 'docs/delta/TEMPLATE.md should be created');
+  assert.ok(fs.existsSync(path.join(dir, 'docs', 'delta', 'REVIEW_CHECKLIST.md')), 'docs/delta/REVIEW_CHECKLIST.md should be created');
   assert.ok(fs.existsSync(path.join(dir, 'scripts', 'validate_delta_links.js')), 'scripts/validate_delta_links.js should be created');
+  assert.ok(fs.existsSync(path.join(dir, 'scripts', 'check_code_size.js')), 'scripts/check_code_size.js should be created');
+  const planContent = fs.readFileSync(path.join(dir, 'docs', 'plan.md'), 'utf8');
+  assert.ok(planContent.includes('# archive index'), 'plan.md should keep an archive index section');
+  assert.ok(planContent.includes('# review timing'), 'plan.md should include a review timing section');
   const deltaTemplate = fs.readFileSync(path.join(dir, 'docs', 'delta', 'TEMPLATE.md'), 'utf8');
   assert.ok(deltaTemplate.toLowerCase().includes('canonical') || deltaTemplate.includes('正本'), 'delta template should mention markdown canonical policy');
+  assert.ok(deltaTemplate.includes('check_code_size.js'), 'delta template should mention code-size checker');
+  assert.ok(deltaTemplate.includes('REVIEW_CHECKLIST.md'), 'delta template should mention review checklist');
 
   const second = spawnSync('node', [script, '--dir', dir], { encoding: 'utf8' });
   assert.notStrictEqual(second.status, 0, 'Second run without --force should fail');

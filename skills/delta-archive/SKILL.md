@@ -17,12 +17,16 @@ description: 「delta archive」「差分を確定したい」「履歴化して
 - FAIL 状態の差分は archive しない。
 - 記録は事実のみ（推測・評価語を混ぜない）。
 - archive 出力は `docs/delta/<Delta ID>.md` に追記または確定保存する。
+- `review gate required: Yes` の delta は、レビュー結果が PASS でなければ archive しない。
+- 未解決の設計崩れ、文書ズレ、データ肥大、長大コードを抱えたまま archive しない。
+- `Delta Type = REVIEW` で問題が見つかった場合は、follow-up delta seeds を記録してから archive する。
 
 ## 実行フロー
 1. Delta ID と対象差分を確定する。
 2. request/apply/verify の要点を記録する。
-3. 未解決事項の有無を明示する。
-4. クローズ状態を宣言する。
+3. review gate の通過有無を確認する。
+4. 未解決事項の有無を明示する。
+5. クローズ状態を宣言する。
 
 ## 出力テンプレート（固定）
 ```markdown
@@ -33,6 +37,7 @@ description: 「delta archive」「差分を確定したい」「履歴化して
 
 ## クローズ判定
 - verify結果: PASS
+- review gate: PASSED / NOT REQUIRED
 - archive可否: 可
 
 ## 確定内容
@@ -57,7 +62,9 @@ description: 「delta archive」「差分を確定したい」「履歴化して
 
 ## 品質ゲート（出力前チェック）
 - verify が PASS である。
+- review gate が必要な場合は PASS である。
 - 変更対象・非対象が記録されている。
 - 未解決事項の有無が明示されている。
+- REVIEW delta で問題が見つかった場合は次の delta seeds が記録されている。
 - archive で新規要件を追加していない。
 - 保存先（`docs/delta/<Delta ID>.md`）が明記されている。
