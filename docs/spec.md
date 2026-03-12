@@ -1,10 +1,10 @@
-# bon-agents-md 仕様書
+# bon-delta-workflows 仕様書
 
 本仕様書の入口は `docs/OVERVIEW.md` とし、運用ルール（レビューゲート、チェックリスト、安全な更新方針）は `docs/OVERVIEW.md` を正とする。
 
 ## フェーズ/グループ構成
 - フェーズ1 (MVP): CLI/ロケール判定、テンプレート生成、ファイル出力・上書き制御。
-- フェーズ2 (運用強化): ドキュメント/コメント運用ルールと言語・エディタ別ガイダンスの明示。
+- フェーズ2 (運用強化): ドキュメント/コメント運用ルールと言語・エージェント別ガイダンスの明示。
 - フェーズ3 (拡張): 言語追加やテスト強化は別途章を追加して管理する。
 
 ### 1. コンテキスト判定（フェーズ1, F1）
@@ -16,10 +16,10 @@
   - 前提 (Given): プラットフォームが Linux で、カーネルリリース名に `microsoft` が含まれる。
   - 条件 (When): `detectLocale` がロケールを決定する。
   - 振る舞い (Then): Windows 側のロケール取得を試み、取得できればそれを優先して `ja`/`en` を決定する。
-- **1.3 [F1] 言語・エディタ指定の正規化**
-  - 前提 (Given): ユーザーが `--lang javascript` や `--editor Copilot` のようにエイリアスや大小混在で入力する。
+- **1.3 [F1] 言語・エージェント指定の正規化**
+  - 前提 (Given): ユーザーが `--lang javascript` や `--agent OpenCode` のように大小混在で入力する。
   - 条件 (When): 引数パーサが入力を正規化する。
-  - 振る舞い (Then): 言語は `js`/`ts` に正規化し、エディタは `codex`/`cursor`/`claudecode`/`copilot` のいずれかに正規化する。不正値はエラーを返す。
+  - 振る舞い (Then): 言語は `js`/`ts` に正規化し、エージェントは `codex`/`claudecode`/`cursor`/`copilot`/`opencode` のいずれかに正規化する。不正値はエラーを返す。
 
 ### 2. テンプレート構成（フェーズ1, F2）
 - **2.1 [F2] ドキュメント参照の徹底**
@@ -70,20 +70,25 @@
   - 前提 (Given): 対象ファイルが既に存在する。
   - 条件 (When): `--force` を付けずに CLI を実行する。
   - 振る舞い (Then): 上書きを拒否しエラー終了する。`--force` 指定時は上書きする。
-- **4.3 [F2] エディタ別ファイル名**
-  - 前提 (Given): `--editor` オプションで `cursor` または `copilot` が指定される可能性がある。
+- **4.3 [F2] エージェント別ファイル名**
+  - 前提 (Given): `--agent` オプションで `claudecode` / `cursor` / `copilot` / `opencode` が指定される可能性がある。
   - 条件 (When): 出力ファイル名を決定する。
-  - 振る舞い (Then): codex/claudecode は `AGENTS.md`、cursor は `.cursorrules`、copilot は `copilot-instructions.md` として保存する。
+  - 振る舞い (Then): codex と opencode は `AGENTS.md`、claudecode は `CLAUDE.md`、cursor は `.cursorrules`、copilot は `copilot-instructions.md` として保存する。
 
-### 5. 言語・エディタ別ガイダンス（フェーズ2, F4）
+- **4.4 [F2] skill 配置スコープ**
+  - 前提 (Given): `--skills` オプションで `none` / `workspace` / `user` が指定される。
+  - 条件 (When): skill の配置先を決定する。
+  - 振る舞い (Then): `none` は配置しない。`workspace` はプロジェクト配下へ配置する。`user` はユーザー領域へ配置する。
+
+### 5. 言語・エージェント別ガイダンス（フェーズ2, F4）
 - **5.1 [F4] 言語別の推奨セットアップ**
   - 前提 (Given): `--lang` で Python/JS/TS/Rust が指定される。
   - 条件 (When): 言語別指針をレンダリングする。
   - 振る舞い (Then): 言語に応じたツールチェーン（Python: `uv`+`pytest`、JS/TS: Node.js + テスト/ESLint/Prettier、Rust: cargo fmt/clippy/test）と環境変数の扱いを明示する。
-- **5.2 [F4] エディタ別ターゲット表記**
-  - 前提 (Given): `--editor` が指定される。
-  - 条件 (When): テンプレート内のエディタ案内を生成する。
-  - 振る舞い (Then): ターゲットとなるエディタ名を表示し、他のエディタを使う場合は `--editor` で切り替えるよう案内する。
+- **5.2 [F4] エージェント別ターゲット表記**
+  - 前提 (Given): `--agent` が指定される。
+  - 条件 (When): テンプレート内のエージェント案内を生成する。
+  - 振る舞い (Then): ターゲットとなるエージェント名を表示し、他のエージェントを使う場合は `--agent` で切り替えるよう案内する。
 
 ### 6. 非機能・運用・エラー整理（横断）
 - **6.1 性能/UX/i18n**
@@ -99,7 +104,9 @@
 | Error ID | シナリオ | 振る舞い/メッセージ例 |
 | --- | --- | --- |
 | E1 | 未サポートの `--lang` を指定 | エラー終了し、サポートされる言語を列挙して再入力を促す |
-| E2 | 未サポートの `--editor` を指定 | エラー終了し、`codex|cursor|claudecode|copilot` を提示する |
+| E2 | 未サポートの `--agent` を指定 | エラー終了し、`codex|claudecode|cursor|copilot|opencode` を提示する |
+| E6 | 未サポートの `--skills` を指定 | エラー終了し、`none|workspace|user` を提示する |
 | E3 | 既存ファイルに `--force` なしで上書きしようとした | エラー終了し、`--force` を付けるよう案内する |
 | E4 | ディレクトリ作成に失敗 | エラー終了し、パスや権限を確認するメッセージを出す |
 | E5 | ロケール判定失敗 | ログにフォールバックを記録し、英語テンプレートを生成する |
+

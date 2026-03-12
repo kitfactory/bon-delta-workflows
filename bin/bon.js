@@ -19,12 +19,12 @@ const {
   ensureOverviewFile,
   ensureDocsSkeleton,
   resolveSkillTargetDir,
-  copySkills,
-  copySupportScript
+  copySkills
 } = require('./lib/file_ops');
 
 const SUPPORTED_LANGS = new Set(['python', 'js', 'javascript', 'ts', 'typescript', 'rust']);
-const SUPPORTED_EDITORS = new Set(['codex', 'cursor', 'claudecode', 'copilot']);
+const SUPPORTED_AGENTS = new Set(['codex', 'claudecode', 'cursor', 'copilot', 'opencode']);
+const SUPPORTED_SKILL_SCOPES = new Set(['none', 'workspace', 'user']);
 const args = process.argv.slice(2);
 
 function printHelp() {
@@ -38,8 +38,11 @@ function printHelp() {
     '  -f, --force            Overwrite an existing guide file',
     '  --lang <python|js|ts|rust>',
     '                         Programming language (default: python)',
-    '  --editor <codex|cursor|claudecode|copilot>',
-    '                         Target AI editor (default: codex)',
+    '  --agent <codex|claudecode|cursor|copilot|opencode>',
+    '                         Target AI agent (default: codex)',
+    '  --skills <none|workspace|user>',
+    '                         Skill install scope (default: workspace)',
+    '                         user scope is supported for codex/claudecode/opencode; use workspace for cursor/copilot',
     '  -h, --help             Show this help',
     '  -v, --version          Show version'
   ].join('\n');
@@ -69,17 +72,29 @@ function normalizeLanguage(value) {
   return normalized;
 }
 
-function normalizeEditor(value) {
+function normalizeAgent(value) {
   if (!value) return 'codex';
   const normalized = value.toLowerCase();
-  if (!SUPPORTED_EDITORS.has(normalized)) {
-    fail('E_EDITOR_UNSUPPORTED', `Unsupported editor: ${value}. Use one of codex|cursor|claudecode|copilot.`);
+  if (normalized === 'claudecode') return 'claudecode';
+  if (!SUPPORTED_AGENTS.has(normalized)) {
+    fail('E_AGENT_UNSUPPORTED', `Unsupported agent: ${value}. Use one of codex|claudecode|cursor|copilot|opencode.`);
   }
   return normalized;
 }
 
-function targetFileName(editor) {
-  switch (editor) {
+function normalizeSkillScope(value) {
+  if (!value) return 'workspace';
+  const normalized = value.toLowerCase();
+  if (!SUPPORTED_SKILL_SCOPES.has(normalized)) {
+    fail('E_SKILL_SCOPE_UNSUPPORTED', `Unsupported skill scope: ${value}. Use one of none|workspace|user.`);
+  }
+  return normalized;
+}
+
+function targetFileName(agent) {
+  switch (agent) {
+    case 'claudecode':
+      return 'CLAUDE.md';
     case 'cursor':
       return '.cursorrules';
     case 'copilot':
@@ -94,7 +109,8 @@ function parseArgs(argv) {
     dir: process.cwd(),
     force: false,
     lang: 'python',
-    editor: 'codex'
+    agent: 'codex',
+    skills: 'workspace'
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -122,10 +138,18 @@ function parseArgs(argv) {
         i += 1;
         break;
       }
+      case '--agent':
       case '--editor': {
         const next = argv[i + 1];
-        if (!next) fail('E_ARG_MISSING', 'Missing value for --editor');
-        options.editor = normalizeEditor(next);
+        if (!next) fail('E_ARG_MISSING', `Missing value for ${arg}`);
+        options.agent = normalizeAgent(next);
+        i += 1;
+        break;
+      }
+      case '--skills': {
+        const next = argv[i + 1];
+        if (!next) fail('E_ARG_MISSING', 'Missing value for --skills');
+        options.skills = normalizeSkillScope(next);
         i += 1;
         break;
       }
@@ -142,6 +166,13 @@ function parseArgs(argv) {
       default:
         fail(`Unknown option: ${arg}\nUse --help to see available options.`);
     }
+  }
+
+  if (options.skills === 'user' && !new Set(['codex', 'claudecode', 'opencode']).has(options.agent)) {
+    fail(
+      'E_SKILL_SCOPE_AGENT_UNSUPPORTED',
+      `--skills user is supported only for codex, claudecode, and opencode. Use --skills workspace for ${options.agent}.`
+    );
   }
 
   return options;
@@ -209,10 +240,10 @@ function detectLocale(options = {}) {
 }
 
 function main() {
-  const { dir, force, lang, editor } = parseArgs(args);
+  const { dir, force, lang, agent, skills } = parseArgs(args);
   const locale = detectLocale();
   const targetDir = path.resolve(dir);
-  const fileName = targetFileName(editor);
+  const fileName = targetFileName(agent);
   const targetPath = path.join(targetDir, fileName);
 
   try {
@@ -227,14 +258,11 @@ function main() {
 
   ensureOverviewFile(targetDir, locale, fail);
   ensureDocsSkeleton(targetDir, locale, fail);
-  const skillCopyResult = copySkills(targetDir, editor, force, fail);
-  const validationScriptResult = copySupportScript(targetDir, 'validate_delta_links.js', force, fail);
-  const codeSizeScriptResult = copySupportScript(targetDir, 'check_code_size.js', force, fail);
-
+  const skillCopyResult = skills === 'none' ? null : copySkills(targetDir, agent, skills, force, fail);
   const template = createLeanTemplate({
     projectName: path.basename(targetDir) || 'project',
     language: lang,
-    editor,
+    editor: agent,
     locale
   });
 
@@ -250,17 +278,11 @@ function main() {
     console.log(`[bon] docs/OVERVIEW.md ready at ${overviewPath}`);
   }
   if (skillCopyResult) {
-    console.log(`[bon] skills copied to ${skillCopyResult.targetSkillDir} (copied: ${skillCopyResult.copied}, skipped: ${skillCopyResult.skipped})`);
-  }
-  if (validationScriptResult) {
     console.log(
-      `[bon] validation script ${validationScriptResult.copied ? 'copied' : 'kept'} at ${validationScriptResult.targetPath}`
+      `[bon] skills (${skills}) copied to ${skillCopyResult.targetSkillDir} (copied: ${skillCopyResult.copied}, skipped: ${skillCopyResult.skipped})`
     );
-  }
-  if (codeSizeScriptResult) {
-    console.log(
-      `[bon] code-size script ${codeSizeScriptResult.copied ? 'copied' : 'kept'} at ${codeSizeScriptResult.targetPath}`
-    );
+  } else if (skills === 'none') {
+    console.log('[bon] skills skipped (--skills none)');
   }
 }
 
@@ -275,7 +297,9 @@ module.exports = {
   createOverviewTemplate,
   isWsl,
   normalizeLanguage,
-  normalizeEditor,
+  normalizeAgent,
+  normalizeEditor: normalizeAgent,
+  normalizeSkillScope,
   targetFileName,
   languageGuidance,
   ensureOverviewFile,

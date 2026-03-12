@@ -1,17 +1,17 @@
-# bon-agents-md コンセプト
+# bon-delta-workflows コンセプト
 
 本リポジトリのドキュメント運用は **`docs/OVERVIEW.md` を唯一の入口**とし、詳細な運用ルールとチェックリストも `docs/OVERVIEW.md` を正とする。
 
-bon-agents-md は、AI エディタが安全かつ効率的に作業できる環境を素早く用意するための CLI です。`bon` コマンドひとつで、プロジェクトに最適化された **AI ガイド（AGENTS.md 等）**と、運用の正本となる **`docs/OVERVIEW.md`** を用意し、ドキュメント運用を開始できる状態にします。
+bon-delta-workflows は、AI エディタが安全かつ効率的に作業できる環境を素早く用意するための CLI です。`bon` コマンドひとつで、プロジェクトに最適化された **AI ガイド（AGENTS.md 等）**と、運用の正本となる **`docs/OVERVIEW.md`** を用意し、ドキュメント運用を開始できる状態にします。
 
 ## 機能一覧とフェーズ（Spec ID 付き）
 
 | Spec ID | 機能 | 詳細説明 | フェーズ | 依存関係 |
 | --- | --- | --- | --- | --- |
-| F1 | CLI/ロケール判定 | `--dir`/`--force`/`--lang`/`--editor`/`--help`/`--version` を扱い、`LANG`/`LC_ALL`/OS から日本語・英語を自動判定（WSL は Windows 言語優先）。 | フェーズ1 (MVP) | なし |
-| F2 | テンプレート生成とファイル出力 | プロジェクト固有情報を含めず、`AGENTS.md`（またはエディタ別のガイド）と `docs/OVERVIEW.md` を生成する。エディタ別の出力ファイル名 (`AGENTS.md`/`.cursorrules`/`copilot-instructions.md`) を採用し、`.env.sample` は作成しない。既存の `docs/OVERVIEW.md` は原則上書きしない（安全優先）。 | フェーズ1 (MVP) | F1 |
+| F1 | CLI/ロケール判定 | `--dir`/`--force`/`--lang`/`--agent`/`--skills`/`--help`/`--version` を扱い、`LANG`/`LC_ALL`/OS から日本語・英語を自動判定（WSL は Windows 言語優先）。 | フェーズ1 (MVP) | なし |
+| F2 | テンプレート生成とファイル出力 | プロジェクト固有情報を含めず、`AGENTS.md` / `CLAUDE.md`（またはエージェント別のガイド）と `docs/OVERVIEW.md` を生成する。エージェント別の出力ファイル名 (`AGENTS.md`/`CLAUDE.md`/`.cursorrules`/`copilot-instructions.md`) を採用し、skill は `--skills none|workspace|user` に応じて配置する。`.env.sample` は作成しない。既存の `docs/OVERVIEW.md` は原則上書きしない（安全優先）。 | フェーズ1 (MVP) | F1 |
 | F3 | ドキュメント/コメント運用ルール | `docs/OVERVIEW.md` を入口として、レビューゲートと安全更新ルールを徹底する。AGENTS が日本語の場合は docs を日本語で書き、コードコメントは日英併記。concept は機能表＋詳細説明と MVP/依存関係を明確化し、spec は章立て＋番号付き Given/When/Then を徹底する。 | フェーズ2 (運用強化) | F2 |
-| F4 | 言語・エディタ別ガイダンス | Python/JS/TS/Rust ごとに推奨ツールチェーンと環境変数の扱いを提示し、codex/cursor/claudecode/copilot での利用を想定した文面を出力する。 | フェーズ2 (運用強化) | F1, F2 |
+| F4 | 言語・エージェント別ガイダンス | Python/JS/TS/Rust ごとに推奨ツールチェーンと環境変数の扱いを提示し、codex/claudecode/cursor/copilot/opencode での利用を想定した文面を出力する。 | フェーズ2 (運用強化) | F1, F2 |
 | F5 | 拡張性とテスト強化 | 言語追加やテンプレート差分拡張、実ファイル生成を伴うテスト強化を段階的に行う。 | フェーズ3 (拡張) | F1–F4 |
 
 ## フェーズの狙い
@@ -41,3 +41,4 @@ bon-agents-md は、AI エディタが安全かつ効率的に作業できる環
 - JavaScript: Node.js + `pnpm`/`npm`、テスト（Vitest/Jest）、Lint/Format（ESLint/Prettier）。`.env` の必要キーと利用箇所を AGENTS.md で指示し、サンプルファイルは生成しない。
 - TypeScript: 上記 JS に加えて型チェック（`tsc --noEmit`）と型境界の設計指針。
 - Rust: `cargo` ワークスペース推奨、`cargo fmt` / `cargo clippy` / `cargo test` の導線を含める。
+

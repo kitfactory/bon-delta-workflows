@@ -1,0 +1,4 @@
+display_name: Delta Bootstrap
+short_description: Create or update AGENTS.md and canonical docs skeleton
+default_prompt: Create or minimally update AGENTS.md and the canonical docs skeleton for this repository without overwriting existing user content unless explicitly requested.
+

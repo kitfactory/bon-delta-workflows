@@ -1,6 +1,6 @@
-# delta record template
+# delta 記録テンプレート
 
-Markdown is the canonical format. Do not require JSON/YAML sidecars.
+正本は Markdown（`docs/delta/*.md`）で管理し、JSON/YAML の副管理を要求しない。
 
 ## Delta ID
 - DR-YYYYMMDD-<short-name>
@@ -15,7 +15,7 @@ Markdown is the canonical format. Do not require JSON/YAML sidecars.
 - Acceptance Criteria:
 - constraints:
 - review gate required: Yes / No
-- review checklist: `docs/delta/REVIEW_CHECKLIST.md` (when Delta Type = REVIEW or review gate required)
+- review checklist: `docs/delta/REVIEW_CHECKLIST.md`
 
 ## Step 2: delta-apply
 - changed files:
@@ -24,8 +24,6 @@ Markdown is the canonical format. Do not require JSON/YAML sidecars.
   - file over 500 lines: Yes / No
   - file over 800 lines: Yes / No
   - file over 1000 lines: Yes / No
-  - long function: Yes / No
-  - multi-responsibility module: Yes / No
 - status: APPLIED / BLOCKED
 
 ## Step 3: delta-verify
@@ -44,7 +42,6 @@ Markdown is the canonical format. Do not require JSON/YAML sidecars.
   - docs sync:
   - data size:
   - code split health:
-  - file-size threshold:
 - overall: PASS / FAIL
 
 ## Step 4: delta-archive
@@ -63,9 +60,5 @@ Markdown is the canonical format. Do not require JSON/YAML sidecars.
 
 ## Validation
 - use `delta-project-validator` skill
-
-## Record Hygiene
-- keep the final state and key decisions
-- do not retain incidental failed attempts unless they matter for later work
 
 

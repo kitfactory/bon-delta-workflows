@@ -1,6 +1,8 @@
-# bon-agents-md
+# bon-delta-workflows
 
-`bon-agents-md` is a CLI that generates lean AI-working guides plus a Delta-first documentation skeleton.
+`bon-delta-workflows` is a bootstrap tool and skill collection for Proactive Delta Context in AI-assisted development.
+
+This package is the renamed and re-scoped successor to `bon-agents-md`, with the product centered on delta-based workflows rather than only AGENTS.md generation.
 
 It is designed for teams and solo developers who want to:
 
@@ -16,7 +18,8 @@ It is designed for teams and solo developers who want to:
 Run one command and `bon` creates:
 
 - an editor-facing guide
-  - `AGENTS.md` for Codex / Claude Code
+  - `AGENTS.md` for Codex / OpenCode
+  - `CLAUDE.md` for Claude Code
   - `.cursorrules` for Cursor
   - `copilot-instructions.md` for Copilot
 - canonical project docs under `docs/`
@@ -27,10 +30,12 @@ Run one command and `bon` creates:
   - `docs/plan.md`
   - `docs/delta/TEMPLATE.md`
   - `docs/delta/REVIEW_CHECKLIST.md`
-- project-local skills
-- validation scripts
-  - `scripts/validate_delta_links.js`
-  - `scripts/check_code_size.js`
+- skills (optional)
+  - includes `delta-bootstrap`
+  - includes `delta-project-validator`
+  - includes `delta-plan-shrinker`
+
+`bon` no longer copies validator scripts into generated projects. Validator logic lives inside skills.
 
 The generated structure is intentionally opinionated: the guide stays lean, and project-specific truth lives under `docs/`.
 
@@ -38,7 +43,7 @@ The generated structure is intentionally opinionated: the guide stays lean, and 
 
 ## Philosophy
 
-`bon-agents-md` is built around a simple idea:
+`bon-delta-workflows` is built around a simple idea:
 
 **AI work is safest when change is small, reviewable, and tied to a canonical record.**
 
@@ -61,7 +66,7 @@ That leads to these operating principles:
    - archive details move to monthly archive files
    - oversized source files are reviewed and split
 
-This is not just a prompt template. It is an operating model for AI-assisted development.
+This is not just a prompt template. It is an operating model for AI-assisted development built around Proactive Delta Context.
 
 Reference:
 
@@ -72,10 +77,18 @@ Reference:
 ## Install
 
 ```bash
-npm install -g bon-agents-md
+npm install -g bon-delta-workflows
 ```
 
 Requires Node.js 16+.
+
+Alternative install flow with the open skills ecosystem:
+
+```bash
+npx skills add kitfactory/bon-delta-workflows --agent codex --skill delta-bootstrap
+```
+
+That installs the skill only. It does not mutate the current project until you ask the agent to run the bootstrap skill.
 
 ---
 
@@ -86,7 +99,12 @@ bon
 bon --dir path/to/project
 bon --force
 bon --lang ts
-bon --editor cursor
+bon --agent claudecode
+bon --agent cursor
+bon --agent opencode
+bon --skills none
+bon --skills workspace
+bon --skills user
 bon --help
 bon --version
 ```
@@ -96,7 +114,14 @@ Options:
 - `--dir`: output directory
 - `--force`: overwrite an existing guide file
 - `--lang`: `python | js | ts | rust`
-- `--editor`: `codex | cursor | claudecode | copilot`
+- `--agent`: `codex | claudecode | cursor | copilot | opencode`
+- `--skills`: `none | workspace | user`
+
+Meaning of `--skills`:
+
+- `none`: generate guide + docs only
+- `workspace`: install skills into the target project
+- `user`: install skills into the agent's user-level skill directory
 
 ---
 
@@ -105,8 +130,56 @@ Options:
 ### 1. Generate the guide and docs
 
 ```bash
-bon --editor codex --lang python
+bon --agent codex --skills workspace --lang python
 ```
+
+Recommended defaults:
+
+- `--agent codex`
+- `--skills workspace`
+
+Examples:
+
+```bash
+# docs + workspace skills for the current project
+bon --agent codex --skills workspace
+
+# docs only, no skill installation
+bon --agent codex --skills none
+
+# install skills to CODEX_HOME/skills and still generate project docs
+bon --agent codex --skills user
+
+# Claude Code project setup
+bon --agent claudecode --skills workspace
+
+# OpenCode project setup
+bon --agent opencode --skills workspace
+```
+
+Skill scope examples:
+
+```bash
+# Use skills only inside this project
+bon --agent codex --skills workspace
+
+# Install reusable skills for your whole Codex environment
+bon --agent codex --skills user
+```
+
+### 1b. Install through `skills add`
+
+If you prefer the standard skills ecosystem, install the bootstrap skill:
+
+```bash
+npx skills add kitfactory/bon-delta-workflows --agent codex --skill delta-bootstrap
+```
+
+Then ask the agent to initialize the repo, for example:
+
+- `Initialize this repo to the bon standard`
+- `AGENTS.md is missing, create the bon bootstrap files`
+- `Create AGENTS.md and docs/OVERVIEW.md without overwriting existing files`
 
 ### 2. Open the entrypoint
 
@@ -158,14 +231,15 @@ Do not mix in:
 
 ### 6. Verify
 
-Run:
-
-```bash
-node scripts/validate_delta_links.js --dir .
-node scripts/check_code_size.js --dir .
-```
+Use the `delta-project-validator` skill.
 
 And run the relevant tests for the change.
+
+Important:
+
+- generated projects do not receive `project/scripts/*.js`
+- validator helpers belong to the installed skill
+- repo-level `scripts/*.js` are only for developing `bon-delta-workflows` itself
 
 ### 7. Archive
 
@@ -242,34 +316,24 @@ Manual trigger examples:
 - `shrink the plan`
 - `organize the archive`
 
+Use the `delta-plan-shrinker` skill when you trigger plan slimming manually.
+
 Codex may also slim the plan when:
 
-- archive summary grows past 5 items
-- `plan.md` exceeds 120 lines
+- the archive section exceeds 100 lines
 - archive becomes clearly larger than current + future
-- a month boundary makes archival natural
 
 ---
 
 ## Validation
 
-### Delta consistency
-
-```bash
-node scripts/validate_delta_links.js --dir .
-```
+Use the `delta-project-validator` skill.
 
 Checks:
 
 - `docs/plan.md`
 - `docs/delta/DR-*.md`
 - archive PASS consistency
-
-### Code size
-
-```bash
-node scripts/check_code_size.js --dir .
-```
 
 Defaults:
 
@@ -301,7 +365,8 @@ That is the intended workflow.
 
 ### Guides
 
-- Codex / Claude Code: `AGENTS.md`
+- Codex / OpenCode: `AGENTS.md`
+- Claude Code: `CLAUDE.md`
 - Cursor: `.cursorrules`
 - Copilot: `copilot-instructions.md`
 
@@ -315,18 +380,44 @@ That is the intended workflow.
 - `docs/delta/TEMPLATE.md`
 - `docs/delta/REVIEW_CHECKLIST.md`
 
-### Support scripts
+### Skills
 
-- `scripts/validate_delta_links.js`
-- `scripts/check_code_size.js`
+With `--skills workspace`:
 
-### Project-local skills
-
-- codex / claudecode: `./.codex/skills`
+- codex: `./.codex/skills`
+- claudecode: `./.claude/skills`
 - cursor: `./.cursor/skills`
 - copilot: `./.github/copilot/skills`
+- opencode: `./.opencode/skills`
 
-Skills are copied into the project. They are not installed globally by `bon`.
+With `--skills user`:
+
+- codex: `${CODEX_HOME}/skills` or `~/.codex/skills`
+- claudecode: `~/.claude/skills`
+- opencode: `~/.config/opencode/skills`
+
+Notes for `user` scope:
+
+- Codex: this follows the actual Codex skill layout: `${CODEX_HOME}/skills/<skill-name>/SKILL.md`
+- Claude Code: this follows the Claude Code skill layout: `~/.claude/skills/<skill-name>/SKILL.md`
+- OpenCode: this follows the OpenCode skill layout: `~/.config/opencode/skills/<skill-name>/SKILL.md`
+- Cursor: unsupported
+- Copilot: unsupported
+- `bon` exits with an error if you use `--agent cursor --skills user` or `--agent copilot --skills user`
+
+With `--skills none`, `bon` skips skill installation, so `delta-project-validator` and `delta-plan-shrinker` are not installed.
+
+Relevant skills:
+
+- `delta-project-validator`
+- `delta-plan-shrinker`
+
+Skill ownership model:
+
+- project docs and guides are bootstrap output
+- files under `skills/<skill-name>/` are skill-owned assets
+- validator helpers belong to `delta-project-validator`
+- plan archive shrinking logic belongs to `delta-plan-shrinker`
 
 ---
 
@@ -352,12 +443,14 @@ Run tests:
 npm test
 ```
 
-Run validators:
+Run repository validators:
 
 ```bash
 node scripts/validate_delta_links.js --dir .
 node scripts/check_code_size.js --dir .
 ```
+
+These repo-level scripts are for maintaining this repository, not for generated projects.
 
 ---
 
@@ -371,3 +464,7 @@ This project is intentionally biased toward:
 - controlled evolution over prompt sprawl
 
 If you want AI to work longer without drifting, this shape is the point.
+
+
+
+

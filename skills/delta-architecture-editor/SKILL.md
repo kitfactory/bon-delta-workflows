@@ -1,9 +1,9 @@
 ---
-name: architecture-editor
-description: 「architecture.mdを作成/直す」「設計書を書く/修正」「アーキテクチャ設計をまとめる」などの依頼で使用。concept.mdを参照してソフトウェア設計を行い、必要観点を網羅したarchitecture.mdをロケール（ja/en）に合わせて作成・更新する。
+name: delta-architecture-editor
+description: 「architecture.mdを作成/直す」「設計書を書く/修正」「アーキテクチャ設計をまとめる」などの依頼で使用。concept.md を参照してソフトウェア設計を行い、delta-based development に必要な層・境界・依存を整理した architecture.md をロケール（ja/en）に合わせて作成・更新する。
 ---
 
-# Architecture Editor
+# Delta Architecture Editor
 
 ## 基本方針
 - 出力言語は `AGENTS.md` とロケールに合わせる（ja は日本語、en は英語）。

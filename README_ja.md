@@ -1,6 +1,8 @@
-# bon-agents-md
+# bon-delta-workflows
 
-`bon-agents-md` は、AI アシスタント向けのガイドと Delta-first なドキュメント骨格を生成する CLI です。
+`bon-delta-workflows` は、AI支援開発のための Proactive Delta Context を実現する bootstrap tool and skill collection です。
+
+このパッケージは `bon-agents-md` をリネームし、AGENTS.md 生成中心から delta-based workflow 中心へ再定義した後継です。
 
 次のような用途を想定しています。
 
@@ -16,7 +18,8 @@
 `bon` を 1 回実行すると、次を生成します。
 
 - エディタ向けガイド
-  - Codex / Claude Code: `AGENTS.md`
+  - Codex / OpenCode: `AGENTS.md`
+  - Claude Code: `CLAUDE.md`
   - Cursor: `.cursorrules`
   - Copilot: `copilot-instructions.md`
 - `docs/` 配下の正本ドキュメント
@@ -27,10 +30,12 @@
   - `docs/plan.md`
   - `docs/delta/TEMPLATE.md`
   - `docs/delta/REVIEW_CHECKLIST.md`
-- プロジェクトローカルの skills
-- 検証スクリプト
-  - `scripts/validate_delta_links.js`
-  - `scripts/check_code_size.js`
+- skills（任意）
+  - `delta-bootstrap` を含む
+  - `delta-project-validator` を含む
+  - `delta-plan-shrinker` を含む
+
+現在は、validator script を生成先プロジェクトへ直接コピーしません。validator の実体は skill 側にあります。
 
 重要なのは、ガイド本体を薄く保ち、プロジェクト固有の正本を `docs/` に集めることです。
 
@@ -38,7 +43,7 @@
 
 ## 哲学
 
-`bon-agents-md` の根本思想は単純です。
+`bon-delta-workflows` の根本思想は単純です。
 
 **AI の作業は、小さく閉じた変更と、正本に結びついたレビュー可能な記録がある時に最も安定する。**
 
@@ -62,7 +67,7 @@
    - archive 詳細は monthly archive へ逃がす
    - 長大コードはレビューし、必要なら分割する
 
-これは単なる prompt テンプレートではなく、AI 支援開発の運用モデルです。
+これは単なる prompt テンプレートではなく、Proactive Delta Context に基づく AI 支援開発の運用モデルです。
 
 参照:
 
@@ -73,12 +78,20 @@
 ## インストール
 
 ```bash
-npm install -g bon-agents-md
+npm install -g bon-delta-workflows
 ```
 
 要件:
 
 - Node.js 16+
+
+open skills ecosystem から入れる場合:
+
+```bash
+npx skills add kitfactory/bon-delta-workflows --agent codex --skill delta-bootstrap
+```
+
+このコマンドは skill を入れるだけで、現在の project はまだ変更しません。初期化はその後に agent へ依頼します。
 
 ---
 
@@ -89,7 +102,12 @@ bon
 bon --dir path/to/project
 bon --force
 bon --lang ts
-bon --editor cursor
+bon --agent claudecode
+bon --agent cursor
+bon --agent opencode
+bon --skills none
+bon --skills workspace
+bon --skills user
 bon --help
 bon --version
 ```
@@ -99,7 +117,14 @@ bon --version
 - `--dir`: 出力先ディレクトリ
 - `--force`: 既存ガイドを上書き
 - `--lang`: `python | js | ts | rust`
-- `--editor`: `codex | cursor | claudecode | copilot`
+- `--agent`: `codex | claudecode | cursor | copilot | opencode`
+- `--skills`: `none | workspace | user`
+
+`--skills` の意味:
+
+- `none`: guide + docs だけ生成する
+- `workspace`: skill を対象プロジェクトへ入れる
+- `user`: skill をエージェントの user-level skill ディレクトリへ入れる
 
 ---
 
@@ -108,8 +133,56 @@ bon --version
 ### 1. ガイドと docs を生成する
 
 ```bash
-bon --editor codex --lang python
+bon --agent codex --skills workspace --lang python
 ```
+
+推奨デフォルト:
+
+- `--agent codex`
+- `--skills workspace`
+
+例:
+
+```bash
+# 現在のプロジェクトに docs + workspace skill を入れる
+bon --agent codex --skills workspace
+
+# docs だけ生成し、skill は入れない
+bon --agent codex --skills none
+
+# skill は CODEX_HOME/skills に入れ、project docs も生成する
+bon --agent codex --skills user
+
+# Claude Code の project 設定
+bon --agent claudecode --skills workspace
+
+# OpenCode の project 設定
+bon --agent opencode --skills workspace
+```
+
+skill scope の使い分け例:
+
+```bash
+# skill をこのプロジェクト内だけで使う
+bon --agent codex --skills workspace
+
+# skill を Codex 全体で再利用する
+bon --agent codex --skills user
+```
+
+### 1b. `skills add` で入れる
+
+標準の skills ecosystem を使いたい場合は、bootstrap skill を入れます。
+
+```bash
+npx skills add kitfactory/bon-delta-workflows --agent codex --skill delta-bootstrap
+```
+
+その後、agent に次のように依頼します。
+
+- `この repo を bon 標準で初期化して`
+- `AGENTS.md がないので bon bootstrap files を作って`
+- `既存ファイルを壊さずに AGENTS.md と docs/OVERVIEW.md を作って`
 
 ### 2. 入口を開く
 
@@ -162,14 +235,15 @@ AC に紐づく変更だけを行います。
 
 ### 6. verify する
 
-実行:
-
-```bash
-node scripts/validate_delta_links.js --dir .
-node scripts/check_code_size.js --dir .
-```
+`delta-project-validator` skill を使います。
 
 必要なテストも併せて実行します。
+
+重要:
+
+- 生成先プロジェクトに `project/scripts/*.js` は作りません
+- validator の補助 script は skill の所有物です
+- repo 直下の `scripts/*.js` は `bon-delta-workflows` 自身を保守するためのものです
 
 ### 7. archive する
 
@@ -247,34 +321,24 @@ verify が PASS なら:
 - `planをシュリンクして`
 - `archiveを整理して`
 
+手動で slim 化する場合は `delta-plan-shrinker` skill を使います。
+
 Codex 側が自発的に slim 化してよい条件:
 
-- archive summary が 5 項目を超えた
-- `plan.md` が 120 行を超えた
+- archive 領域が 100 行を超えた
 - archive が current + future より明らかに長い
-- 月が変わって前月 archive をまとめやすい
 
 ---
 
 ## 検証
 
-### delta 整合チェック
-
-```bash
-node scripts/validate_delta_links.js --dir .
-```
+`delta-project-validator` skill を使います。
 
 見るもの:
 
 - `docs/plan.md`
 - `docs/delta/DR-*.md`
 - archive の PASS 整合
-
-### コードサイズチェック
-
-```bash
-node scripts/check_code_size.js --dir .
-```
 
 既定値:
 
@@ -306,7 +370,8 @@ node scripts/check_code_size.js --dir .
 
 ### ガイド
 
-- Codex / Claude Code: `AGENTS.md`
+- Codex / OpenCode: `AGENTS.md`
+- Claude Code: `CLAUDE.md`
 - Cursor: `.cursorrules`
 - Copilot: `copilot-instructions.md`
 
@@ -320,19 +385,44 @@ node scripts/check_code_size.js --dir .
 - `docs/delta/TEMPLATE.md`
 - `docs/delta/REVIEW_CHECKLIST.md`
 
-### 補助スクリプト
+### skills
 
-- `scripts/validate_delta_links.js`
-- `scripts/check_code_size.js`
+`--skills workspace` の場合:
 
-### プロジェクトローカル skills
-
-- codex / claudecode: `./.codex/skills`
+- codex: `./.codex/skills`
+- claudecode: `./.claude/skills`
 - cursor: `./.cursor/skills`
 - copilot: `./.github/copilot/skills`
+- opencode: `./.opencode/skills`
 
-skills はプロジェクト内にコピーされます。  
-`bon` によってグローバルインストールされるわけではありません。
+`--skills user` の場合:
+
+- codex: `${CODEX_HOME}/skills` または `~/.codex/skills`
+- claudecode: `~/.claude/skills`
+- opencode: `~/.config/opencode/skills`
+
+`user` scope の注記:
+
+- Codex: 実際の Codex skill 構成 `${CODEX_HOME}/skills/<skill-name>/SKILL.md` に沿う
+- Claude Code: `~/.claude/skills/<skill-name>/SKILL.md` に沿う
+- OpenCode: `~/.config/opencode/skills/<skill-name>/SKILL.md` に沿う
+- Cursor: 未対応
+- Copilot: 未対応
+- `--agent cursor --skills user` と `--agent copilot --skills user` はエラー終了する
+
+`--skills none` の場合、skill の配置は行われず、`delta-project-validator` や `delta-plan-shrinker` も入りません。
+
+主に使う skill:
+
+- `delta-project-validator`
+- `delta-plan-shrinker`
+
+所有関係:
+
+- project docs / guide は bootstrap 出力
+- `skills/<skill-name>/` 配下は skill の所有物
+- validator 補助は `delta-project-validator` の所有物
+- plan archive 圧縮ロジックは `delta-plan-shrinker` の所有物
 
 ---
 
@@ -358,12 +448,14 @@ WSL では Windows 側を優先します。
 npm test
 ```
 
-validator:
+このリポジトリ自身の validator:
 
 ```bash
 node scripts/validate_delta_links.js --dir .
 node scripts/check_code_size.js --dir .
 ```
+
+これらの repo-level scripts は、このリポジトリ自身を保守するためのものであり、生成先プロジェクト用ではありません。
 
 ---
 
@@ -377,3 +469,7 @@ node scripts/check_code_size.js --dir .
 - prompt の増殖より運用の一貫性
 
 AI を長く動かしても逸脱しにくくしたいなら、この形に意味があります。
+
+
+
+

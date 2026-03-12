@@ -29,7 +29,7 @@
 
 ## 対応エディタ
 - ターゲット: Cursor
-- 他のエディタ指定時は CLI オプション `--editor` を使用
+- 他のエージェント指定時は CLI オプション `--agent` を使用
 
 ## 作業の進め方
 - まず `docs/concept.md`, `docs/spec.md`, `docs/architecture.md` を読む（無ければ作成する）

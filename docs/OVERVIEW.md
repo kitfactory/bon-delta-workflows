@@ -46,6 +46,7 @@
 - `review delta` の点検観点は `docs/delta/REVIEW_CHECKLIST.md` を使って固定する。
 - `delta` 本体には成功した最終状態を中心に記録し、中間失敗は必要なものだけ残す。
 - `docs/plan.md` は入口として薄く保ち、archive は別ファイルへ分離できるようにする。
+- validator 実行は `delta-project-validator` skill を使う。
 
 ### Gate 定義（成果物とDoD）
 #### 全体レベル（Project Gates）
@@ -121,12 +122,10 @@
 - archive の詳細は `docs/plan_archive_YYYY_MM.md` へ月別に分離する。
 - `archive summary` には直近の重要完了だけを残し、履歴本文は monthly archive へ逃がす。
 - `OVERVIEW.md` と `plan.md` には monthly archive へのリンクを残す。
-- ユーザーはいつでも `planをシュリンクして` または `archiveを整理して` と手動発動してよい。
+- ユーザーはいつでも `planをシュリンクして` または `archiveを整理して` と手動発動してよく、その場合は `delta-plan-shrinker` skill を使う。
 - Codex は次の場合、`plan slim` を自発的に提案または実行してよい:
-  - `archive summary` が **5項目超**
-  - `docs/plan.md` 全体が **120行超**
+  - plan の `archive` 領域が **100行超**
   - archive 部分が `current + future` より明らかに長い
-  - 月が変わり、前月の archive がまとまった
 
 ### コードサイズの運用閾値
 - 通常のソースコードは **500行超でレビュー対象**とする。
@@ -139,7 +138,7 @@
 - `static check`
 - `targeted unit`
 - `targeted integration / E2E`
-- `delta validator`
+- `delta-project-validator`
 - 必要時のみ文書同期確認
 
 ### archive 前の最低条件
@@ -162,3 +161,5 @@
 - Spec ID / Error ID の変更、互換性に影響する仕様変更
 - API/データモデルの形を変える設計変更
 - セキュリティ/重大バグ修正で挙動が変わるもの
+
+

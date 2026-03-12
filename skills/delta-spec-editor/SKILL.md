@@ -1,9 +1,9 @@
 ---
-name: spec-editor
-description: 「仕様書を作る/直す」「spec.mdを作成/修正」「仕様書(spec.md相当)を作って/直して」などの依頼で使用。concept.mdを参照して規模を判断し、全体または機能単位の仕様書をロケール（ja/en）に合わせて整合性を保って作成・更新する。
+name: delta-spec-editor
+description: 「仕様書を作る/直す」「spec.mdを作成/修正」「仕様書(spec.md相当)を作って/直して」などの依頼で使用。concept.md を参照して規模を判断し、delta-based work に必要な振る舞いと受入条件をロケール（ja/en）に合わせて整合的に作成・更新する。
 ---
 
-# Spec Editor
+# Delta Spec Editor
 
 ## 基本方針
 - 出力言語は `AGENTS.md` とロケールに合わせる（ja は日本語、en は英語）。

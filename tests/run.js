@@ -9,7 +9,6 @@ const codeSize = require('../scripts/check_code_size.js');
 
 const tempDirs = [];
 
-
 function test(name, fn) {
   try {
     fn();
@@ -58,7 +57,26 @@ test('parseArgs defaults', () => {
   assert.ok(parsed.dir);
   assert.strictEqual(parsed.force, false);
   assert.strictEqual(parsed.lang, 'python');
-  assert.strictEqual(parsed.editor, 'codex');
+  assert.strictEqual(parsed.agent, 'codex');
+  assert.strictEqual(parsed.skills, 'workspace');
+});
+
+test('parseArgs normalizes agent and skill scope', () => {
+  const parsed = bon.parseArgs(['--agent', 'Codex', '--skills', 'user']);
+  assert.strictEqual(parsed.agent, 'codex');
+  assert.strictEqual(parsed.skills, 'user');
+});
+
+test('parseArgs keeps legacy --editor as codex alias', () => {
+  const parsed = bon.parseArgs(['--editor', 'claudecode']);
+  assert.strictEqual(parsed.agent, 'claudecode');
+});
+
+test('parseArgs rejects user skill scope for non-codex agents', () => {
+  const script = path.join(__dirname, '..', 'bin', 'bon.js');
+  const run = spawnSync('node', [script, '--agent', 'cursor', '--skills', 'user'], { encoding: 'utf8' });
+  assert.notStrictEqual(run.status, 0, 'cursor + user should fail');
+  assert.ok(run.stderr.includes('supported only for codex, claudecode, and opencode'));
 });
 
 test('detectLocale honors env ja', () => {
@@ -68,7 +86,7 @@ test('detectLocale honors env ja', () => {
 
 test('detectLocale falls back to en', () => {
   const locale = bon.detectLocale({ env: {} });
-  assert.ok(['en', 'ja'].includes(locale)); // default en if no env
+  assert.ok(['en', 'ja'].includes(locale));
 });
 
 test('languageGuidance mentions env handling', () => {
@@ -94,8 +112,7 @@ test('createTemplate Japanese markers', () => {
   assert.ok(tpl.includes('delta の記録は `docs/delta/*.md`（Markdown）を正本'), 'Japanese template should keep markdown as canonical for delta records');
   assert.ok(tpl.includes('設計変更提案の出力順を固定'), 'Japanese template should include fixed design-output order');
   assert.ok(tpl.includes('`spec.md > architecture.md > OVERVIEW/AGENTS > 設計補助ガイド`'), 'Japanese template should include design-guidance priority');
-  assert.ok(tpl.includes('node scripts/validate_delta_links.js --dir .'), 'Japanese template should mention delta link validator');
-  assert.ok(tpl.includes('node scripts/check_code_size.js --dir .'), 'Japanese template should mention code-size checker');
+  assert.ok(tpl.includes('delta-project-validator'), 'Japanese template should mention delta-project-validator');
   assert.ok(tpl.includes('REVIEW_CHECKLIST.md'), 'Japanese template should mention review checklist');
 });
 
@@ -120,8 +137,7 @@ test('createTemplate English doc rules include concept/spec guidance', () => {
   assert.ok(tpl.includes('Keep delta records canonical in Markdown (`docs/delta/*.md`)'), 'English template should keep markdown as canonical for delta records');
   assert.ok(tpl.includes('Fix design-output order'), 'English template should include fixed design-output order');
   assert.ok(tpl.includes('Conflict priority for design guidance'), 'English template should include design-guidance priority');
-  assert.ok(tpl.includes('node scripts/validate_delta_links.js --dir .'), 'English template should mention delta link validator');
-  assert.ok(tpl.includes('node scripts/check_code_size.js --dir .'), 'English template should mention code-size checker');
+  assert.ok(tpl.includes('delta-project-validator'), 'English template should mention delta-project-validator');
   assert.ok(tpl.includes('REVIEW_CHECKLIST.md'), 'English template should mention review checklist');
 });
 
@@ -136,7 +152,7 @@ test('createOverviewTemplate includes delta boundary notes', () => {
   assert.ok(ja.includes('REVIEW_CHECKLIST.md'), 'Japanese overview should mention review checklist');
   assert.ok(ja.includes('archive summary'), 'Japanese overview should mention slim plan structure');
   assert.ok(ja.includes('3 delta'), 'Japanese overview should mention automatic review trigger by delta count');
-  assert.ok(ja.includes('120行'), 'Japanese overview should mention plan shrink threshold');
+  assert.ok(ja.includes('100行を超えたら'), 'Japanese overview should mention plan shrink threshold');
   assert.ok(ja.includes('review timing'), 'Japanese overview should mention review timing in plan');
 
   const en = bon.createOverviewTemplate('en');
@@ -149,7 +165,7 @@ test('createOverviewTemplate includes delta boundary notes', () => {
   assert.ok(en.includes('REVIEW_CHECKLIST.md'), 'English overview should mention review checklist');
   assert.ok(en.includes('archive summary / archive index'), 'English overview should mention slim plan structure');
   assert.ok(en.includes('3+ deltas'), 'English overview should mention automatic review trigger by delta count');
-  assert.ok(en.includes('120 lines'), 'English overview should mention plan shrink threshold');
+  assert.ok(en.includes('100 lines'), 'English overview should mention plan shrink threshold');
   assert.ok(en.includes('review timing'), 'English overview should mention review timing in plan');
 });
 
@@ -284,14 +300,17 @@ test('CLI creates AGENTS.md and blocks overwrite without --force', () => {
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'plan.md')), 'docs/plan.md should be created');
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'delta', 'TEMPLATE.md')), 'docs/delta/TEMPLATE.md should be created');
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'delta', 'REVIEW_CHECKLIST.md')), 'docs/delta/REVIEW_CHECKLIST.md should be created');
-  assert.ok(fs.existsSync(path.join(dir, 'scripts', 'validate_delta_links.js')), 'scripts/validate_delta_links.js should be created');
-  assert.ok(fs.existsSync(path.join(dir, 'scripts', 'check_code_size.js')), 'scripts/check_code_size.js should be created');
+  assert.ok(fs.existsSync(path.join(dir, '.codex', 'skills')), 'workspace skills should be created by default');
+  assert.ok(fs.existsSync(path.join(dir, '.codex', 'skills', 'delta-project-validator', 'scripts', 'validate_delta_links.js')), 'delta-project-validator skill should own validate script');
+  assert.ok(fs.existsSync(path.join(dir, '.codex', 'skills', 'delta-project-validator', 'scripts', 'check_code_size.js')), 'delta-project-validator skill should own code-size script');
+  assert.ok(fs.existsSync(path.join(dir, '.codex', 'skills', 'delta-plan-shrinker', 'SKILL.md')), 'delta-plan-shrinker skill should be installed');
+  assert.ok(fs.existsSync(path.join(dir, '.codex', 'skills', 'delta-bootstrap', 'SKILL.md')), 'delta-bootstrap skill should be installed');
   const planContent = fs.readFileSync(path.join(dir, 'docs', 'plan.md'), 'utf8');
   assert.ok(planContent.includes('# archive index'), 'plan.md should keep an archive index section');
   assert.ok(planContent.includes('# review timing'), 'plan.md should include a review timing section');
   const deltaTemplate = fs.readFileSync(path.join(dir, 'docs', 'delta', 'TEMPLATE.md'), 'utf8');
   assert.ok(deltaTemplate.toLowerCase().includes('canonical') || deltaTemplate.includes('正本'), 'delta template should mention markdown canonical policy');
-  assert.ok(deltaTemplate.includes('check_code_size.js'), 'delta template should mention code-size checker');
+  assert.ok(deltaTemplate.includes('delta-project-validator'), 'delta template should mention delta-project-validator');
   assert.ok(deltaTemplate.includes('REVIEW_CHECKLIST.md'), 'delta template should mention review checklist');
 
   const second = spawnSync('node', [script, '--dir', dir], { encoding: 'utf8' });
@@ -318,17 +337,69 @@ test('CLI uses editor-specific filenames', () => {
   const dir = tempDir();
   const script = path.join(__dirname, '..', 'bin', 'bon.js');
 
-  const cursorRun = spawnSync('node', [script, '--dir', path.join(dir, 'cursor'), '--editor', 'cursor'], {
+  const claudeRun = spawnSync('node', [script, '--dir', path.join(dir, 'claude'), '--agent', 'claudecode'], {
+    encoding: 'utf8'
+  });
+  assert.strictEqual(claudeRun.status, 0, claudeRun.stderr);
+  assert.ok(fs.existsSync(path.join(dir, 'claude', bon.targetFileName('claudecode'))));
+
+  const cursorRun = spawnSync('node', [script, '--dir', path.join(dir, 'cursor'), '--agent', 'cursor'], {
     encoding: 'utf8'
   });
   assert.strictEqual(cursorRun.status, 0, cursorRun.stderr);
   assert.ok(fs.existsSync(path.join(dir, 'cursor', bon.targetFileName('cursor'))));
 
-  const copilotRun = spawnSync('node', [script, '--dir', path.join(dir, 'copilot'), '--editor', 'copilot'], {
+  const copilotRun = spawnSync('node', [script, '--dir', path.join(dir, 'copilot'), '--agent', 'copilot'], {
     encoding: 'utf8'
   });
   assert.strictEqual(copilotRun.status, 0, copilotRun.stderr);
   assert.ok(fs.existsSync(path.join(dir, 'copilot', bon.targetFileName('copilot'))));
+
+  const openCodeRun = spawnSync('node', [script, '--dir', path.join(dir, 'opencode'), '--agent', 'opencode'], {
+    encoding: 'utf8'
+  });
+  assert.strictEqual(openCodeRun.status, 0, openCodeRun.stderr);
+  assert.ok(fs.existsSync(path.join(dir, 'opencode', bon.targetFileName('opencode'))));
+});
+
+test('CLI skips skill installation with --skills none', () => {
+  const dir = tempDir();
+  const script = path.join(__dirname, '..', 'bin', 'bon.js');
+  const run = spawnSync('node', [script, '--dir', dir, '--skills', 'none'], { encoding: 'utf8' });
+  assert.strictEqual(run.status, 0, run.stderr);
+  assert.ok(!fs.existsSync(path.join(dir, '.codex', 'skills')), 'workspace skill directory should not exist');
+});
+
+test('delta-bootstrap script creates missing guide and docs', () => {
+  const dir = tempDir();
+  const script = path.join(__dirname, '..', 'skills', 'delta-bootstrap', 'scripts', 'bootstrap_repo.js');
+  const run = spawnSync('node', [script, '--dir', dir, '--agent', 'cursor', '--locale', 'ja', '--lang', 'ts'], {
+    encoding: 'utf8'
+  });
+  assert.strictEqual(run.status, 0, run.stderr);
+  assert.ok(fs.existsSync(path.join(dir, '.cursorrules')), 'cursor guide should be created');
+  assert.ok(fs.existsSync(path.join(dir, 'docs', 'OVERVIEW.md')), 'overview should be created');
+  assert.ok(fs.existsSync(path.join(dir, 'docs', 'delta', 'TEMPLATE.md')), 'delta template should be created');
+  const guide = fs.readFileSync(path.join(dir, '.cursorrules'), 'utf8');
+  assert.ok(guide.includes('TypeScript'), 'guide should include language guidance');
+  assert.ok(guide.includes('配置（推奨）'), 'cursor guide should include placement section');
+});
+
+test('resolveSkillTargetDir supports workspace and user scopes', () => {
+  const dir = tempDir();
+  const workspaceTarget = bon.resolveSkillTargetDir(dir, 'cursor', 'workspace');
+  assert.strictEqual(workspaceTarget, path.join(dir, '.cursor', 'skills'));
+
+  const userTarget = bon.resolveSkillTargetDir(dir, 'codex', 'user', {
+    CODEX_HOME: path.join(dir, '.user-codex')
+  });
+  assert.strictEqual(userTarget, path.join(dir, '.user-codex', 'skills'));
+
+  const claudeWorkspace = bon.resolveSkillTargetDir(dir, 'claudecode', 'workspace');
+  assert.strictEqual(claudeWorkspace, path.join(dir, '.claude', 'skills'));
+
+  const openCodeWorkspace = bon.resolveSkillTargetDir(dir, 'opencode', 'workspace');
+  assert.strictEqual(openCodeWorkspace, path.join(dir, '.opencode', 'skills'));
 });
 
 console.log('All tests passed.');

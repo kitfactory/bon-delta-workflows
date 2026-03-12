@@ -1,7 +1,7 @@
 {
-  "name": "bon-agents-md",
-  "version": "0.1.7",
-  "description": "Create an AGENTS.md in the current directory with a single bon command.",
+  "name": "bon-delta-workflows",
+  "version": "0.1.0",
+  "description": "Bootstrap repositories and run delta-based workflows for AI-assisted development.",
   "license": "MIT",
   "author": "Naruhide Kitada",
   "bin": {
@@ -22,9 +22,15 @@
     "node": ">=16"
   },
   "keywords": [
+    "delta",
+    "workflow",
     "agents",
     "documentation",
     "cli",
-    "prompt"
+    "ai-assisted-development"
   ]
 }
+
+
+
+

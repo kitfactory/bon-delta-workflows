@@ -41,7 +41,7 @@ PHILOSOPHY_JA = dedent(
     - `docs/plan.md` の実装アイテム1件を、`delta request` 1件の seed として扱う（原則1:1）。
     - 大きい実装アイテムは 1:N の delta に分割して順次処理する。
     - delta 記録は `docs/delta/*.md` を正本とし、JSON/YAML の副管理を要求しない。
-    - 検証は `node scripts/validate_delta_links.js --dir .` を実行する。
+    - 検証は `delta-project-validator` skill を使う。
 
     ## 成功条件
     - 変更理由、受入条件、実装、検証、確定履歴が Delta ID で追跡できる。
@@ -78,7 +78,7 @@ PHILOSOPHY_EN = dedent(
     - Treat one implementation item in `docs/plan.md` as one delta-request seed (default 1:1).
     - If an item is too large, split it into multiple deltas (1:N) and process sequentially.
     - Keep delta records canonical in `docs/delta/*.md`; do not require JSON/YAML sidecars.
-    - Run `node scripts/validate_delta_links.js --dir .` for consistency checks.
+    - Use the `delta-project-validator` skill for consistency checks.
 
     ## Success criteria
     - Rationale, acceptance criteria, implementation, verification, and archive are traceable by Delta ID.
@@ -110,3 +110,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+

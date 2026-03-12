@@ -1,4 +1,5 @@
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const { createOverviewTemplate, createDocStub } = require('./templates');
@@ -69,18 +70,50 @@ function resolveSkillSourceDir() {
   return path.join(__dirname, '..', '..', 'skills');
 }
 
-function resolveSkillTargetDir(targetDir, editor) {
-  switch (editor) {
+function resolveCodexHome(env = process.env) {
+  if (env.CODEX_HOME) return env.CODEX_HOME;
+  return path.join(os.homedir(), '.codex');
+}
+
+function resolveWorkspaceSkillTargetDir(targetDir, agent) {
+  switch (agent) {
     case 'codex':
-    case 'claudecode':
       return path.join(targetDir, '.codex', 'skills');
+    case 'claudecode':
+      return path.join(targetDir, '.claude', 'skills');
     case 'cursor':
       return path.join(targetDir, '.cursor', 'skills');
     case 'copilot':
       return path.join(targetDir, '.github', 'copilot', 'skills');
+    case 'opencode':
+      return path.join(targetDir, '.opencode', 'skills');
     default:
       return path.join(targetDir, 'skills');
   }
+}
+
+function resolveUserSkillTargetDir(agent, env = process.env) {
+  switch (agent) {
+    case 'codex':
+      return path.join(resolveCodexHome(env), 'skills');
+    case 'claudecode':
+      return path.join(os.homedir(), '.claude', 'skills');
+    case 'cursor':
+      return path.join(os.homedir(), '.cursor', 'skills');
+    case 'copilot':
+      return path.join(os.homedir(), '.github', 'copilot', 'skills');
+    case 'opencode':
+      return path.join(os.homedir(), '.config', 'opencode', 'skills');
+    default:
+      return path.join(os.homedir(), '.bon', 'skills', agent);
+  }
+}
+
+function resolveSkillTargetDir(targetDir, agent, scope = 'workspace', env = process.env) {
+  if (scope === 'user') {
+    return resolveUserSkillTargetDir(agent, env);
+  }
+  return resolveWorkspaceSkillTargetDir(targetDir, agent);
 }
 
 function copyDirRecursive(srcDir, destDir, options = {}) {
@@ -112,11 +145,11 @@ function copyDirRecursive(srcDir, destDir, options = {}) {
   return result;
 }
 
-function copySkills(targetDir, editor, force, fail) {
+function copySkills(targetDir, agent, scope, force, fail) {
   const sourceDir = resolveSkillSourceDir();
   if (!fs.existsSync(sourceDir)) return null;
 
-  const targetSkillDir = resolveSkillTargetDir(targetDir, editor);
+  const targetSkillDir = resolveSkillTargetDir(targetDir, agent, scope);
   try {
     const result = copyDirRecursive(sourceDir, targetSkillDir, { force });
     return { targetSkillDir, ...result };
@@ -127,36 +160,11 @@ function copySkills(targetDir, editor, force, fail) {
   return null;
 }
 
-function copySupportScript(targetDir, scriptName, force, fail) {
-  const sourcePath = path.join(__dirname, '..', '..', 'scripts', scriptName);
-  if (!fs.existsSync(sourcePath)) return null;
-
-  const targetPath = path.join(targetDir, 'scripts', scriptName);
-  try {
-    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-    if (fs.existsSync(targetPath) && !force) {
-      return { targetPath, copied: false };
-    }
-
-    fs.copyFileSync(sourcePath, targetPath);
-    try {
-      fs.chmodSync(targetPath, 0o755);
-    } catch (_) {
-      // best effort
-    }
-
-    return { targetPath, copied: true };
-  } catch (error) {
-    failOrThrow(fail, 'E_IO_COPY', `Failed to copy support script (${scriptName}): ${error.message}`);
-  }
-
-  return null;
-}
-
 module.exports = {
   ensureOverviewFile,
   ensureDocsSkeleton,
+  resolveCodexHome,
   resolveSkillTargetDir,
-  copySkills,
-  copySupportScript
+  resolveUserSkillTargetDir,
+  copySkills
 };

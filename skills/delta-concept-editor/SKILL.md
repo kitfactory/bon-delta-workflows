@@ -1,9 +1,9 @@
 ---
-name: concept-editor
-description: 「concept.mdを作成」「conceptを作る/直す/修正」「concept文書を評価/レビュー」など、concept.mdの作成・更新・評価を行う。プロダクト概念・ユースケース・機能ブロック・主要データの整合性を担保しながら編集する固定11セクション形式。ロケール（ja/en）に合わせて出力する。
+name: delta-concept-editor
+description: 「concept.mdを作成」「conceptを作る/直す/修正」「concept文書を評価/レビュー」など、concept.md の作成・更新・評価を行う。プロダクト概念・ユースケース・機能ブロック・主要データを整合させ、delta 境界が崩れないようロケール（ja/en）に合わせて出力する。
 ---
 
-# Concept Editor
+# Delta Concept Editor
 
 ## 基本方針
 - 出力言語は `AGENTS.md` とロケールに合わせる（ja は日本語、en は英語）。

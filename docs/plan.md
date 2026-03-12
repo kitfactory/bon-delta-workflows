@@ -1,7 +1,7 @@
 # plan.md（必ず書く：最新版）
 
 このファイルは **入口だけ** を置く。`current` は Active work を 1〜5 件までに絞り、archive の詳細は monthly archive に分離する。
-ユーザーは `planをシュリンクして` といつでも指示してよい。Codex は `archive summary > 5項目`、`plan.md > 120行`、または archive が current/future より明らかに長い場合に slim 化してよい。
+ユーザーは `planをシュリンクして` といつでも指示してよい。Codex は `archive領域 > 100行`、または archive が current/future より明らかに長い場合に slim 化してよい。
 
 # current
 - [ ] 次の active delta を起票する（current は 1〜5 件だけ維持）

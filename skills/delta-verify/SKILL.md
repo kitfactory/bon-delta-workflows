@@ -22,9 +22,10 @@ description: 「delta verify」「差分の検証をして」「request通りか
 - 判定不能（証跡不足）は PASS にせず FAIL とする。
 - `review gate required: Yes` の delta では、AC 判定に加えてレビュー観点を別枠で評価する。
 - `Delta Type = REVIEW` の場合は `docs/delta/REVIEW_CHECKLIST.md` を使って点検する。
+- validator 実行が必要な場合は `delta-project-validator` skill を使う。
 
 ## 検証フロー
-1. 標準 verify プロファイルを確定する（static check / targeted unit / targeted integration or E2E / delta validator）。
+1. 標準 verify プロファイルを確定する（static check / targeted unit / targeted integration or E2E / `delta-project-validator`）。
 2. AC ごとに証跡を確認する。
 3. In Scope / Out of Scope の逸脱を確認する。
 4. 変更前後の整合性と回帰リスクを確認する。
@@ -44,7 +45,7 @@ description: 「delta verify」「差分の検証をして」「request通りか
 - static check:
 - targeted unit:
 - targeted integration / E2E:
-- delta validator:
+- delta-project-validator:
 
 ## 検証結果（AC単位）
 | AC | 結果(PASS/FAIL) | 根拠 |
@@ -89,3 +90,5 @@ description: 「delta verify」「差分の検証をして」「request通りか
 - REVIEW delta で問題が見つかった場合は follow-up delta seeds が書かれている。
 - FAIL の場合、再applyに必要な最小指示だけを書く。
 - 1件でも FAIL があれば Overall は必ず FAIL である。
+
+
