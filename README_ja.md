@@ -93,6 +93,12 @@ npx skills add kitfactory/bon-delta-workflows --agent codex --skill delta-bootst
 
 このコマンドは skill を入れるだけで、現在の project はまだ変更しません。初期化はその後に agent へ依頼します。
 
+安定版を固定して入れる場合は tag を使います:
+
+```bash
+npx skills add https://github.com/kitfactory/bon-delta-workflows/tree/v0.1.0 --agent codex --skill delta-bootstrap
+```
+
 ---
 
 ## 基本的な使い方
@@ -176,6 +182,12 @@ bon --agent codex --skills user
 
 ```bash
 npx skills add kitfactory/bon-delta-workflows --agent codex --skill delta-bootstrap
+```
+
+または、release tag を固定して入れます。
+
+```bash
+npx skills add https://github.com/kitfactory/bon-delta-workflows/tree/v0.1.0 --agent codex --skill delta-bootstrap
 ```
 
 その後、agent に次のように依頼します。

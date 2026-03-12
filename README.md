@@ -90,6 +90,12 @@ npx skills add kitfactory/bon-delta-workflows --agent codex --skill delta-bootst
 
 That installs the skill only. It does not mutate the current project until you ask the agent to run the bootstrap skill.
 
+For a pinned release, install from a tag:
+
+```bash
+npx skills add https://github.com/kitfactory/bon-delta-workflows/tree/v0.1.0 --agent codex --skill delta-bootstrap
+```
+
 ---
 
 ## Basic Usage
@@ -173,6 +179,12 @@ If you prefer the standard skills ecosystem, install the bootstrap skill:
 
 ```bash
 npx skills add kitfactory/bon-delta-workflows --agent codex --skill delta-bootstrap
+```
+
+Or pin to a release tag:
+
+```bash
+npx skills add https://github.com/kitfactory/bon-delta-workflows/tree/v0.1.0 --agent codex --skill delta-bootstrap
 ```
 
 Then ask the agent to initialize the repo, for example:
