@@ -1,8 +1,12 @@
 # bon-delta-workflows
 
-`bon-delta-workflows` is a bootstrap tool and skill collection for Proactive Delta Context in AI-assisted development.
+`bon-delta-workflows` is a bootstrap tool and skill collection for running AI-assisted development as a lean, delta-based workflow.
 
-This package is the renamed and re-scoped successor to `bon-agents-md`, with the product centered on delta-based workflows rather than only AGENTS.md generation.
+It is built around **Proactive Delta Context**: keep work closed to the smallest useful change, verify it before it flows forward, and keep canonical project context in sync.
+
+This package is the renamed and re-scoped successor to `bon-agents-md`. It started as AGENTS.md bootstrap tooling and evolved into a practical operating model for long-running LLM-assisted development.
+
+![Proactive Delta Context infographic](docs/image/PDC_en.png)
 
 It is designed for teams and solo developers who want to:
 
@@ -43,9 +47,35 @@ The generated structure is intentionally opinionated: the guide stays lean, and 
 
 ## Philosophy
 
-`bon-delta-workflows` is built around a simple idea:
+`bon-delta-workflows` is a practical answer to a lean-development question:
 
-**AI work is safest when change is small, reviewable, and tied to a canonical record.**
+**How do you keep AI work flowing without overproduction, context mixing, quality drift, or unfinished change inventory?**
+
+Its answer is **Proactive Delta Context**:
+
+> treat each change as a small, closed delta, give the agent only the context needed for that delta, verify the result before it moves forward, and archive the outcome so the next change starts clean.
+
+Why is that necessary?
+
+- existing code, docs, plans, and prior chat state are often partially stale the moment a new change starts
+- if an agent reads all of that as equally valid context, old assumptions and new intent get mixed together
+- that produces the typical failure modes of LLM work: over-generation, contradiction, unnecessary rewrites, and false confidence
+
+Proactive Delta Context is the countermeasure:
+
+- define the intended change before implementation
+- create a delta context by selecting still-valid information and adding explicit scope, constraints, and acceptance criteria
+- make mismatches explicit as scope, constraints, or follow-up deltas
+- refuse to treat the whole repository as one continuously reliable prompt
+
+In other words, the repository is valuable, but not automatically trustworthy as-is. A delta context is not merely extracted from the repository. It is created in advance so the agent works inside a context that is smaller, more explicit, and more correct.
+
+This is why the workflow is intentionally opinionated:
+
+- large requests are broken into small reviewable deltas
+- canonical docs are updated as part of the same operating loop
+- verification is a built-in quality gate, not a cleanup phase
+- plan/archive hygiene is used to keep flow readable during long sessions
 
 That leads to these operating principles:
 
@@ -66,7 +96,7 @@ That leads to these operating principles:
    - archive details move to monthly archive files
    - oversized source files are reviewed and split
 
-This is not just a prompt template. It is an operating model for AI-assisted development built around Proactive Delta Context.
+This is not just a prompt template. It is a lean-development thought experiment turned into a working operating model for AI-assisted development.
 
 Reference:
 

@@ -1,8 +1,12 @@
 # bon-delta-workflows
 
-`bon-delta-workflows` は、AI支援開発のための Proactive Delta Context を実現する bootstrap tool and skill collection です。
+`bon-delta-workflows` は、AI支援開発をリーンな delta-based workflow として回すための bootstrap tool and skill collection です。
 
-このパッケージは `bon-agents-md` をリネームし、AGENTS.md 生成中心から delta-based workflow 中心へ再定義した後継です。
+中核にあるのは **Proactive Delta Context** です。変更を最小限の差分に閉じ、その差分に必要な文脈だけを扱い、verify を通してから次へ流し、正本を同期しながら進めます。
+
+このパッケージは `bon-agents-md` をリネームし、AGENTS.md 生成中心の道具から、長時間の LLM 支援開発を回すための運用モデルへ再定義した後継です。
+
+![Proactive Delta Context の説明図](docs/image/PDC_ja.png)
 
 次のような用途を想定しています。
 
@@ -43,11 +47,37 @@
 
 ## 哲学
 
-`bon-delta-workflows` の根本思想は単純です。
+`bon-delta-workflows` は、リーン開発の次の問いに対する実務的な答えです。
 
-**AI の作業は、小さく閉じた変更と、正本に結びついたレビュー可能な記録がある時に最も安定する。**
+**AI の作業を、過剰生成、文脈の混線、不良の流出、未確定の仕掛かりを増やさずに流し続けるにはどうするか。**
 
-そのため、次の原則で構成しています。
+その答えが **Proactive Delta Context** です。
+
+> 変更を小さく閉じた delta として扱い、その delta に必要な最小限の文脈だけで作業し、verify を通ったものだけを次へ流し、archive で仕掛かりを残さず終える。
+
+なぜこれが必要になるのかというと、既存資産そのものが、そのままでは誤った情報源になり得るからです。
+
+- 既存コード、既存ドキュメント、過去の plan、過去の会話は、新しい変更が始まった瞬間に部分的に古くなる
+- それらを全部「同じ重みで正しい文脈」として agent に読ませると、古い前提と新しい意図が混ざる
+- その結果、LLM は過剰生成、矛盾した出力、不要な全面書き換え、誤った自信を伴う説明を起こしやすくなる
+
+Proactive Delta Context は、その対策として次を行います。
+
+- 実装前に、今回の変更を delta として定義する
+- まだ真とみなせる情報を選び直し、不足する scope・constraint・acceptance criteria を補って delta context を事前に作り出す
+- 食い違いは scope、constraint、follow-up delta として明示する
+- repo 全体を、そのまま連続的に信頼できる prompt とはみなさない
+
+つまり、repo 全体には価値があるが、そのまま全部を現在の真実として扱ってはいけない、という前提です。delta context は repo から単純に切り出されるものではなく、agent が入る前に明示的に作り出す必要があります。
+
+このため、この workflow は意図的に次を重視します。
+
+- 大きな要求を小さくレビュー可能な delta に分ける
+- canonical docs を同じ運用ループの中で同期する
+- verify を後始末ではなく built-in quality のゲートにする
+- plan / archive を整えて長時間作業でも flow を読める状態に保つ
+
+その上で、次の原則で構成しています。
 
 1. Delta-first
    - すべての要件は
@@ -67,7 +97,7 @@
    - archive 詳細は monthly archive へ逃がす
    - 長大コードはレビューし、必要なら分割する
 
-これは単なる prompt テンプレートではなく、Proactive Delta Context に基づく AI 支援開発の運用モデルです。
+これは単なる prompt テンプレートではなく、リーン開発の思考実験を実務運用へ落とした AI 支援開発の運用モデルです。
 
 参照:
 
