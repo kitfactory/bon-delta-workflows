@@ -126,7 +126,7 @@ npx skills add kitfactory/bon-delta-workflows --agent codex --skill delta-bootst
 安定版を固定して入れる場合は tag を使います:
 
 ```bash
-npx skills add https://github.com/kitfactory/bon-delta-workflows/tree/v0.1.0 --agent codex --skill delta-bootstrap
+npx skills add https://github.com/kitfactory/bon-delta-workflows/tree/v0.1.1 --agent codex --skill delta-bootstrap
 ```
 
 ---
@@ -217,7 +217,7 @@ npx skills add kitfactory/bon-delta-workflows --agent codex --skill delta-bootst
 または、release tag を固定して入れます。
 
 ```bash
-npx skills add https://github.com/kitfactory/bon-delta-workflows/tree/v0.1.0 --agent codex --skill delta-bootstrap
+npx skills add https://github.com/kitfactory/bon-delta-workflows/tree/v0.1.1 --agent codex --skill delta-bootstrap
 ```
 
 その後、agent に次のように依頼します。

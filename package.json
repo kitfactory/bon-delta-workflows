@@ -1,6 +1,6 @@
 {
   "name": "bon-delta-workflows",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Bootstrap repositories and run delta-based workflows for AI-assisted development.",
   "license": "MIT",
   "author": "Naruhide Kitada",

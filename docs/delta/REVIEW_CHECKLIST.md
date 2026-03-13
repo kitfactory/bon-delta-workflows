@@ -15,11 +15,16 @@ Use this checklist when `Delta Type = REVIEW` or when `review gate required = Ye
 - 5 non-review deltas have continued since the last review delta
 
 ## Required checks
+- delta shape:
+  - the delta still represents one arrival point
+  - same-goal observation, micro-fix, and minimum verify were not split without reason
 - layer integrity:
   - responsibilities are still separated
   - dependency direction is still coherent
 - docs sync:
-  - `concept/spec/architecture` still match the implementation
+  - the canonical sync mode fits the delta type
+  - direct canonical updates stayed within In Scope
+  - `OPS` changes did not rewrite product content in `concept/spec/architecture`
   - stable knowledge is promoted out of delta notes when needed
 - data size:
   - plan/archive/meta data is still minimal
@@ -28,7 +33,8 @@ Use this checklist when `Delta Type = REVIEW` or when `review gate required = Ye
   - no file over the agreed thresholds without review
   - no multi-responsibility module remains unexamined
 - verify coverage:
-  - the verify profile used for the delta is still sufficient
+  - the request verify profile matches the delta type and touched artifacts
+  - full verify was not used without a clear reason
 
 ## Outcome
 - PASS:

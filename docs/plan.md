@@ -24,6 +24,7 @@
 # archive
 - [x] 2026-03: `bon` CLI のテンプレート出力、skill copy、path resolution、テスト整備を完了
 - [x] 2026-03: delta 長時間稼働ルール、review delta、code-size checker、plan slim 化を整備
+- [x] 2026-03: [DR-20260313-delta-ops-slimming] delta 運用軽量化、editorial fast lane、verify profile、canonical sync mode を整備
 
 # archive index
 - `./plan_archive_2026_03.md`

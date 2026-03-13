@@ -1,36 +1,38 @@
 ---
 name: delta-verify
-description: 「delta verify」「差分の検証をして」「request通りか確認して」などの依頼で使用。delta-requestとdelta-applyの整合性を検証し、逸脱や不良を後工程へ流さない。
+description: 「delta verify」「差分の検証をして」「request通りか確認して」などの依頼で使用。delta-request と delta-apply の整合性を、request で定義された verify profile に従って検証する。
 ---
 
 # Delta Verify
 
 ## 目的
 - 作成済み差分が request を満たすか判定する。
-- 逸脱・不整合・不良を検出して止める。
+- 逸脱、不整合、不良を検出して止める。
 
 ## 入力
-- delta-request（Delta ID, AC, In/Out Scope）
-- delta-apply（変更ファイル, AC対応説明）
+- delta-request（Delta ID, AC, In/Out Scope, Candidate Files/Artifacts, Verify Profile, Canonical Sync Mode）
+- delta-apply（変更ファイル/成果物, AC 対応説明, Canonical Sync 実施状況）
 - 実際の差分/成果物
 
 ## 厳守ルール（逸脱禁止）
-- 判定基準は request の AC と制約のみを使う。
+- 判定基準は request の AC、制約、Verify Profile のみを使う。
+- `Verify Profile` にない重い検証を、合否基準へ勝手に追加しない。
 - 「あった方がよい改善」を合否基準に混ぜない。
 - Out of Scope の変更は失敗として報告する。
 - 根拠のない推測で合格にしない。
 - 判定不能（証跡不足）は PASS にせず FAIL とする。
 - `review gate required: Yes` の delta では、AC 判定に加えてレビュー観点を別枠で評価する。
 - `Delta Type = REVIEW` の場合は `docs/delta/REVIEW_CHECKLIST.md` を使って点検する。
-- validator 実行が必要な場合は `delta-project-validator` skill を使う。
+- validator 実行が必要な場合は、request の `delta-project-validator` 指定に従って `delta-project-validator` skill を使う。
+- request の Verify Profile 外で追加確認した場合は、参考所見として別枠に記録し、FAIL 条件に混ぜない。
 
 ## 検証フロー
-1. 標準 verify プロファイルを確定する（static check / targeted unit / targeted integration or E2E / `delta-project-validator`）。
-2. AC ごとに証跡を確認する。
-3. In Scope / Out of Scope の逸脱を確認する。
-4. 変更前後の整合性と回帰リスクを確認する。
-5. review gate が必要な場合は、レイヤー構造、文書同期、データ肥大、コード分割健全性を確認する。
-6. コード分割健全性では、通常のソースコードについて 500 行超はレビュー済みか、800 行超は分割済みか、1000 行超は例外として妥当かを確認する。
+1. request に書かれた `Verify Profile` を読む。
+2. request で要求された検証だけを実施する。
+3. AC ごとに証跡を確認する。
+4. In Scope / Out of Scope の逸脱を確認する。
+5. `Canonical Sync Mode` と実際の同期状況の整合を確認する。
+6. review gate が必要な場合は、レイヤー構造、文書同期、データ肥大、コード分割健全性を確認する。
 7. REVIEW delta で問題があれば、必要な follow-up delta seeds を明示する。
 8. PASS/FAIL を決定し、FAIL は最小修正指示を返す。
 
@@ -41,7 +43,13 @@ description: 「delta verify」「差分の検証をして」「request通りか
 ## Delta ID
 - （requestと同一）
 
-## Verify Profile
+## Requested Verify Profile
+- static check:
+- targeted unit:
+- targeted integration / E2E:
+- delta-project-validator:
+
+## Executed Verify
 - static check:
 - targeted unit:
 - targeted integration / E2E:
@@ -56,6 +64,11 @@ description: 「delta verify」「差分の検証をして」「request通りか
 ## スコープ逸脱チェック
 - Out of Scope 変更の有無: Yes/No
 - 逸脱内容:
+
+## Canonical Sync Check
+- mode:
+- status:
+- result: PASS/FAIL
 
 ## 不整合/回帰リスク
 - R-01:
@@ -73,6 +86,9 @@ description: 「delta verify」「差分の検証をして」「request通りか
 - pass: Yes/No
 - follow-up delta seeds:
 
+## 参考所見（合否外）
+- O-01:
+
 ## 判定
 - Overall: PASS / FAIL
 
@@ -81,14 +97,13 @@ description: 「delta verify」「差分の検証をして」「request通りか
 ```
 
 ## 品質ゲート（出力前チェック）
-- 標準 verify プロファイルの実施有無が書かれている。
+- Requested Verify Profile と Executed Verify が書かれている。
 - 全 AC が判定されている。
 - 判定ごとに根拠がある。
 - 逸脱の有無が明示されている。
+- Canonical Sync の整合が評価されている。
 - review gate が必要な delta では、レビュー観点の結果が明示されている。
 - 500 / 800 / 1000 行の閾値判定が必要な場合は根拠つきで書かれている。
 - REVIEW delta で問題が見つかった場合は follow-up delta seeds が書かれている。
-- FAIL の場合、再applyに必要な最小指示だけを書く。
+- FAIL の場合、再apply に必要な最小指示だけを書く。
 - 1件でも FAIL があれば Overall は必ず FAIL である。
-
-

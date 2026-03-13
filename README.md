@@ -123,7 +123,7 @@ That installs the skill only. It does not mutate the current project until you a
 For a pinned release, install from a tag:
 
 ```bash
-npx skills add https://github.com/kitfactory/bon-delta-workflows/tree/v0.1.0 --agent codex --skill delta-bootstrap
+npx skills add https://github.com/kitfactory/bon-delta-workflows/tree/v0.1.1 --agent codex --skill delta-bootstrap
 ```
 
 ---
@@ -214,7 +214,7 @@ npx skills add kitfactory/bon-delta-workflows --agent codex --skill delta-bootst
 Or pin to a release tag:
 
 ```bash
-npx skills add https://github.com/kitfactory/bon-delta-workflows/tree/v0.1.0 --agent codex --skill delta-bootstrap
+npx skills add https://github.com/kitfactory/bon-delta-workflows/tree/v0.1.1 --agent codex --skill delta-bootstrap
 ```
 
 Then ask the agent to initialize the repo, for example:
